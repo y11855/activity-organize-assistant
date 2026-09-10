@@ -1,0 +1,53 @@
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.settings/
+.project
+.classpath
+
+# ===== 日志 =====
+logs/
+*.log
+
+# ===== 环境变量（不要把真实密钥传到 GitHub）=====
+.env
+.env.local
+.env.*.local
+backend/src/main/resources/application-local.yml
+
+# ===== 后端编译产物 =====
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/build/
+
+# ===== 前端依赖与构建产物 =====
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# ===== 自动生成的类型文件 =====
+frontend/src/types/auto-imports.d.ts
+frontend/src/types/components.d.ts
+
+# ===== 上传文件 =====
+backend/uploads/
+uploads/
+
+# ===== 临时文件 =====
+*.tmp
+*.bak
+*.cache

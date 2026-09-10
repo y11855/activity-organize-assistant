@@ -1,0 +1,27 @@
+@use 'element-plus/theme-chalk/dark/css-vars.css';
+
+:root {
+  --app-header-height: 56px;
+  --app-sidebar-width: 220px;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', Arial, sans-serif;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color-page);
+}
+
+a {
+  color: var(--el-color-primary);
+  text-decoration: none;
+}

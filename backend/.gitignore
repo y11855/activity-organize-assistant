@@ -1,0 +1,27 @@
+# 编译输出
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# 日志
+logs/
+*.log
+
+# 上传文件
+uploads/
+
+# 环境变量
+.env
+application-local.yml
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
