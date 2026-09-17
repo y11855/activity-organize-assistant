@@ -1,11 +1,11 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: training-eval-mysql
+    container_name: activity-assistant-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      MYSQL_DATABASE: training_eval
+      MYSQL_DATABASE: activity_assistant
       TZ: Asia/Shanghai
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: training-eval-redis
+    container_name: activity-assistant-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -31,7 +31,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: training-eval-minio
+    container_name: activity-assistant-minio
     restart: unless-stopped
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}

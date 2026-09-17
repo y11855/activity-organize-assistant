@@ -45,7 +45,7 @@ service.interceptors.response.use(
 )
 
 export function request<T = unknown>(config: AxiosRequestConfig): Promise<T> {
-  return service.request<T, T>(config)
+  return service.request<unknown, T>(config) as Promise<T>
 }
 
 export default service

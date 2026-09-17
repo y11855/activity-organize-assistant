@@ -8,7 +8,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const menus = computed(() =>
-  router.getRoutes
+  router.getRoutes()
     .flatMap((r) => r.children ?? [])
     .filter((r) => !r.meta?.hidden)
 )
@@ -22,7 +22,7 @@ function onLogout() {
 <template>
   <el-container class="layout">
     <el-aside :width="`var(--app-sidebar-width)`" class="layout__aside">
-      <div class="layout__logo">实训 AI 评价系统</div>
+      <div class="layout__logo">活动管家</div>
       <el-menu
         :default-active="route.path"
         router

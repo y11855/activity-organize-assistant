@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { useUserStore } from '@/stores'
 
 const Layout = () => import('@/layouts/BasicLayout.vue')
 
@@ -12,37 +13,37 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: Layout,
-    redirect: '/dashboard',
+    redirect: '/activities',
     children: [
       {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: { title: '工作台', icon: 'House' }
+        path: 'activities',
+        name: 'activity-list',
+        component: () => import('@/views/activity/ActivityList.vue'),
+        meta: { title: '我的活动', icon: 'Calendar' }
       },
       {
-        path: 'trainings',
-        name: 'training-list',
-        component: () => import('@/views/training/TrainingList.vue'),
-        meta: { title: '实训管理', icon: 'Document' }
+        path: 'activities/:id',
+        name: 'activity-detail',
+        component: () => import('@/views/activity/ActivityDetail.vue'),
+        meta: { title: '活动详情', hidden: true }
       },
       {
-        path: 'trainings/:id',
-        name: 'training-detail',
-        component: () => import('@/views/training/TrainingDetail.vue'),
-        meta: { title: '实训详情', hidden: true }
+        path: 'tasks',
+        name: 'task-list',
+        component: () => import('@/views/task/TaskList.vue'),
+        meta: { title: '任务分工', icon: 'List' }
       },
       {
-        path: 'evaluation',
-        name: 'evaluation',
-        component: () => import('@/views/evaluation/EvaluationConfig.vue'),
-        meta: { title: '评价指标', icon: 'SetUp' }
+        path: 'questionnaires',
+        name: 'questionnaire-list',
+        component: () => import('@/views/questionnaire/QuestionnaireList.vue'),
+        meta: { title: '报名问卷', icon: 'Tickets' }
       },
       {
-        path: 'reports',
-        name: 'reports',
-        component: () => import('@/views/report/ReportView.vue'),
-        meta: { title: '统计报表', icon: 'DataAnalysis' }
+        path: 'reminders',
+        name: 'reminder-list',
+        component: () => import('@/views/reminder/ReminderList.vue'),
+        meta: { title: '定时提醒', icon: 'Bell' }
       }
     ]
   },
@@ -62,7 +63,7 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const userStore = useUserStore()
   const title = to.meta.title as string
-  document.title = title ? `${title} - 实训 AI 评价系统` : '实训 AI 评价系统'
+  document.title = title ? `${title} - 活动管家` : '活动管家'
 
   if (to.meta.public) {
     return next()

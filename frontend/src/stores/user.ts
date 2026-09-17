@@ -28,7 +28,7 @@ export const useUserStore = defineStore('user', {
     }
   },
   persist: {
-    key: 'training-eval-user',
+    key: 'activity-assistant-user',
     paths: ['token', 'userInfo']
   }
 })

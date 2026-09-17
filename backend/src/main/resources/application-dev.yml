@@ -1,9 +1,9 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/training_eval?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USER}
-    password: ${MYSQL_PASSWORD}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/activity_assistant?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root123}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -13,4 +13,4 @@ spring:
 
 logging:
   level:
-    com.aiapp.trainingeval: debug
+    com.aiapp.activityassistant: debug

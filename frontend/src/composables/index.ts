@@ -1,3 +1,4 @@
-<script setup lang="ts">
-// 组合式函数示例占位
-</script>
+/**
+ * 组合式函数统一出口
+ */
+export { useAuth } from './useAuth'
