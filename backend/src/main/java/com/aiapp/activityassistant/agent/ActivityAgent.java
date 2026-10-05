@@ -17,10 +17,12 @@ import java.util.Map;
  * 活动管家 Agent：一句话发起活动，全流程自动跑
  *
  * 编排流程：规划(Plan) → 执行(Execute) → 交付(Deliver)
- *  - 规划：调用大模型生成策划方案、物料清单、问卷、任务分工
- *  - 执行：通过工具调度器调用日历/表单/消息工具，幂等 + 重试
- *  - 交付：创建定时提醒、通知相关人员
+ * - 规划：调用大模型生成策划方案、物料清单、问卷、任务分工
+ * - 执行：通过工具调度器调用日历/表单/消息工具，幂等 + 重试
+ * - 交付：创建定时提醒、通知相关人员
  */
+
+// 123
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -61,8 +63,7 @@ public class ActivityAgent {
                 "title", activity.getTitle(),
                 "startTime", activity.getStartTime(),
                 "endTime", activity.getEndTime(),
-                "location", activity.getLocation()
-        ));
+                "location", activity.getLocation()));
 
         // 2. 生成问卷
         questionnaireService.generate(activityId);
