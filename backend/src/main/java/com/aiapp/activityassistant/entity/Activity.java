@@ -1,25 +1,19 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 活动实体
+ * 活动实体（聚合根）
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("activity")
-public class Activity implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class Activity extends BaseEntity {
 
     /** 创建人 ID（权限控制用，只能操作自己的活动） */
     private Long creatorId;
@@ -45,13 +39,4 @@ public class Activity implements Serializable {
 
     /** 复盘总结内容（AI 生成） */
     private String reviewContent;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    private Integer deleted;
 }

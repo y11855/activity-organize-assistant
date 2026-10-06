@@ -1,23 +1,19 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
  * 任务分工
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("task_assignment")
-public class TaskAssignment implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class TaskAssignment extends BaseEntity {
 
     private Long activityId;
 
@@ -38,9 +34,4 @@ public class TaskAssignment implements Serializable {
 
     /** 状态: 0待开始 1进行中 2已完成 3已逾期 */
     private Integer status;
-
-    private LocalDateTime createTime;
-
-    @TableLogic
-    private Integer deleted;
 }

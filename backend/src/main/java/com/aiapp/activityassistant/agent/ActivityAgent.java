@@ -9,8 +9,10 @@ import com.aiapp.activityassistant.service.TaskService;
 import com.aiapp.activityassistant.tool.ToolDispatcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,10 +38,21 @@ public class ActivityAgent {
     private final Deliverer deliverer;
 
     /**
-     * 运行全流程编排
+     * 运行全流程编排。
+     * 通过独立 Bean 的代理调用，{@code @Async} 生效：创建活动落库后立即返回，编排异步执行；
+     * 即使 AI/外部工具暂未接入，也只在后台兜底并记录日志，不影响活动主流程与数据落库。
      */
+    @Async
     public void run(Long activityId) {
         log.info("[Agent] 开始编排活动, activityId={}", activityId);
+        try {
+            doRun(activityId);
+        } catch (Exception e) {
+            log.error("[Agent] 活动编排失败, activityId={}", activityId, e);
+        }
+    }
+
+    private void doRun(Long activityId) {
         Activity activity = activityService.getById(activityId);
         if (activity == null) {
             log.warn("[Agent] 活动不存在, activityId={}", activityId);
@@ -54,15 +67,17 @@ public class ActivityAgent {
         activity.setPlanContent(plan.getPlanContent());
         activity.setStatus(1);
         activityService.updateById(activity);
+        activityService.evictDetailCache(activityId);
 
         // ========== 阶段二：执行 ==========
         log.info("[Agent] 阶段二：执行");
-        // 1. 写日历
-        toolDispatcher.dispatch(activityId, "calendar", Map.of(
-                "title", activity.getTitle(),
-                "startTime", activity.getStartTime(),
-                "endTime", activity.getEndTime(),
-                "location", activity.getLocation()));
+        // 1. 写日历（参数允许为 null，用户可只填标题，故用 HashMap 而非 Map.of）
+        Map<String, Object> calendarParams = new HashMap<>();
+        calendarParams.put("title", activity.getTitle());
+        calendarParams.put("startTime", activity.getStartTime());
+        calendarParams.put("endTime", activity.getEndTime());
+        calendarParams.put("location", activity.getLocation());
+        toolDispatcher.dispatch(activityId, "calendar", calendarParams);
 
         // 2. 生成问卷
         questionnaireService.generate(activityId);
@@ -79,6 +94,7 @@ public class ActivityAgent {
 
         activity.setStatus(2);
         activityService.updateById(activity);
+        activityService.evictDetailCache(activityId);
         log.info("[Agent] 活动编排完成, activityId={}", activityId);
     }
 

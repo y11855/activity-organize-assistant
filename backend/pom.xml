@@ -19,7 +19,8 @@
 
     <properties>
         <java.version>17</java.version>
-        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <mybatis-plus.version>3.5.7</mybatis-plus.version>
+        <druid.version>1.2.23</druid.version>
         <hutool.version>5.8.27</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
         <minio.version>8.5.11</minio.version>
@@ -38,9 +39,15 @@
         </dependency>
 
         <!-- 数据层 -->
+        <!-- Druid 连接池（Spring Boot 3 专用 starter，含监控页/SQL 防火墙） -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-3-starter</artifactId>
+            <version>${druid.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis-plus.version}</version>
         </dependency>
         <dependency>

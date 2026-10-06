@@ -1,23 +1,17 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 工具调用日志（幂等与重试追踪）
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("tool_call_log")
-public class ToolCallLog implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class ToolCallLog extends BaseEntity {
 
     private Long activityId;
 
@@ -41,9 +35,4 @@ public class ToolCallLog implements Serializable {
 
     /** 错误信息 */
     private String errorMessage;
-
-    private LocalDateTime createTime;
-
-    @TableLogic
-    private Integer deleted;
 }

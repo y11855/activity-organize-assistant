@@ -41,4 +41,9 @@ public interface ActivityService extends IService<Activity> {
      * 校验当前用户是否为活动创建人（权限控制）
      */
     void checkOwnership(Long activityId);
+
+    /**
+     * 清除活动详情缓存（活动/子资源发生变更后调用）
+     */
+    void evictDetailCache(Long activityId);
 }

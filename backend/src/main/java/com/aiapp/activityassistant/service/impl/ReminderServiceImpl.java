@@ -50,7 +50,6 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
                 String.valueOf(dto.getTriggerTime()),
                 dto.getTitle()
         ));
-        reminder.setCreateTime(LocalDateTime.now());
         save(reminder);
         return reminder.getId();
     }

@@ -1,24 +1,19 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 /**
  * 物料清单项
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("material")
-public class Material implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class Material extends BaseEntity {
 
     private Long activityId;
 
@@ -36,9 +31,4 @@ public class Material implements Serializable {
 
     /** 备注 */
     private String remark;
-
-    private LocalDateTime createTime;
-
-    @TableLogic
-    private Integer deleted;
 }

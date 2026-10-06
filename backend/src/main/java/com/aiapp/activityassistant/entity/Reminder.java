@@ -1,23 +1,19 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
  * 定时提醒任务
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("reminder")
-public class Reminder implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class Reminder extends BaseEntity {
 
     private Long activityId;
 
@@ -44,9 +40,4 @@ public class Reminder implements Serializable {
 
     /** 重试次数 */
     private Integer retryCount;
-
-    private LocalDateTime createTime;
-
-    @TableLogic
-    private Integer deleted;
 }

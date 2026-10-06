@@ -1,23 +1,17 @@
 package com.aiapp.activityassistant.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.aiapp.activityassistant.common.entity.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.EqualsAndHashCode;
 
 /**
  * 报名问卷
  */
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("questionnaire")
-public class Questionnaire implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class Questionnaire extends BaseEntity {
 
     private Long activityId;
 
@@ -32,9 +26,4 @@ public class Questionnaire implements Serializable {
 
     /** 状态: 0未发布 1已发布 2已截止 */
     private Integer status;
-
-    private LocalDateTime createTime;
-
-    @TableLogic
-    private Integer deleted;
 }

@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,7 +42,6 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         q.setDescription("请填写报名信息");
         q.setQuestions("[{\"title\":\"是否参加\",\"type\":\"single\",\"required\":true,\"options\":[\"参加\",\"不参加\"]},{\"title\":\"备注\",\"type\":\"text\",\"required\":false}]");
         q.setStatus(1);
-        q.setCreateTime(LocalDateTime.now());
         save(q);
         return q.getId();
     }
