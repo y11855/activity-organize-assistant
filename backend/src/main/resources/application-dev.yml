@@ -5,7 +5,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/activity_assistant?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root123}
+    password: ${MYSQL_PASSWORD:ENC(FLhAnwlnj4ouxPlaiRQTiDEE3pofHfs6+a0zd5aUVlFYmcmgE4Ip7706XbQrdrC1)}
     druid:
       # —— 连接池大小 ——
       initial-size: 5          # 初始化连接数
@@ -34,7 +34,7 @@ spring:
         enabled: true
         url-pattern: /druid/*
         login-username: ${DRUID_USER:admin}
-        login-password: ${DRUID_PASSWORD:admin123}
+        login-password: ${DRUID_PASSWORD:ENC(Zlar6hw7spjxlcLeyfXNisFKYnVs8f8chGR6prNVMCQmxmkheiULmxGjsAFVYCtY)}
         reset-enable: false
       # —— Web 请求与 SQL 关联监控 ——
       web-stat-filter:
@@ -59,3 +59,13 @@ spring:
 logging:
   level:
     com.aiapp.activityassistant: debug
+
+# —— 配置加密（Jasypt）——
+# yml 中所有 ENC(...) 包裹的值会在启动时用主密钥解密。
+# 主密钥 MUST 通过环境变量 JASYPT_ENCRYPTOR_PASSWORD 传入，禁止写入任何配置/源码文件。
+jasypt:
+  encryptor:
+    algorithm: PBEWITHHMACSHA512ANDAES_256
+    iv-generator-classname: org.jasypt.iv.RandomIvGenerator
+    string-output-type: base64
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:}

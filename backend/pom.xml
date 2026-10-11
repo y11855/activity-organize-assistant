@@ -21,6 +21,7 @@
         <java.version>17</java.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <druid.version>1.2.23</druid.version>
+        <jasypt.version>3.0.5</jasypt.version>
         <hutool.version>5.8.27</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
         <minio.version>8.5.11</minio.version>
@@ -58,6 +59,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- 配置加密：把 yml 中的明文密码写成 ENC(密文)，启动时用主密钥解密（Spring Boot 3 兼容版） -->
+        <dependency>
+            <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot-starter</artifactId>
+            <version>${jasypt.version}</version>
         </dependency>
 
         <!-- 工具 -->
