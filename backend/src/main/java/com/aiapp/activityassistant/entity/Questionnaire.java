@@ -21,6 +21,9 @@ public class Questionnaire extends BaseEntity {
     /** 问卷描述 */
     private String description;
 
+    /** 封面图URL */
+    private String coverImage;
+
     /** 题目配置（JSON 数组） */
     private String questions;
 

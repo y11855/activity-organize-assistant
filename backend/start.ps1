@@ -1,17 +1,31 @@
-# 活动管家后端启动脚本
-# 作用：指定 JDK 21 + 注入 Jasypt 配置加密主密钥，然后启动 Spring Boot 应用
-# 用法：在 PowerShell 中执行  .\start.ps1
+﻿# Activity Assistant backend startup script
+# Sets JDK 21, loads local secrets (Jasypt master key + DashScope API key), then starts Spring Boot.
+# Usage: in PowerShell run  .\start.ps1
+#
+# Local secrets are read from start.local.ps1 (git-ignored).
+# Copy start.local.ps1.example to start.local.ps1 and fill in your own values.
 
-# 1. 指定 JDK 21（避免终端缓存旧 JDK）
+# 1. Use JDK 21 (avoids stale JAVA_HOME cached in terminal)
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
-# 2. 注入 Jasypt 主密钥（用于解密 application-dev.yml 中的 ENC(...) 密文）
-#    该密钥仅用于本地开发/演示，正式部署应通过安全的环境变量或密钥管理服务注入
-$env:JASYPT_ENCRYPTOR_PASSWORD = "activity-assistant-2026-secure"
+# 2. Load local secrets — never hardcode real keys in this file
+$localSecrets = Join-Path $PSScriptRoot "start.local.ps1"
+if (Test-Path $localSecrets) {
+    . $localSecrets
+    Write-Host "[Config] Local secrets loaded from start.local.ps1" -ForegroundColor Green
+} else {
+    Write-Host "[WARN] start.local.ps1 not found. Copy start.local.ps1.example -> start.local.ps1 and fill in keys." -ForegroundColor Yellow
+}
+
+if ([string]::IsNullOrWhiteSpace($env:DASHSCOPE_API_KEY) -or $env:DASHSCOPE_API_KEY -like "sk-xxxx*") {
+    Write-Host "[WARN] No valid DashScope API key found. AI planning will use fallback." -ForegroundColor Yellow
+} else {
+    Write-Host "[AI] DashScope API key loaded." -ForegroundColor Green
+}
 
 Write-Host "JAVA_HOME = $env:JAVA_HOME" -ForegroundColor Cyan
 Write-Host "Starting activity-assistant backend..." -ForegroundColor Green
 
-# 3. 启动应用
+# 3. Start the app
 mvn spring-boot:run

@@ -31,11 +31,26 @@ public class Activity extends BaseEntity {
     /** 活动地点 */
     private String location;
 
-    /** 状态: 0草稿 1策划中 2执行中 3已完成 4已取消 */
+    /** 预计参与人数 */
+    private Integer expectedCount;
+
+    /** 选择的成员ID（JSON数组字符串） */
+    private String memberIds;
+
+    /** AI 生成项配置（JSON：tasks/materials/questionnaire/reminders） */
+    private String generateOptions;
+
+    /** 状态: 0草稿 1策划中 2执行中 3已完成 4已取消 5待确认 */
     private Integer status;
 
     /** 活动策划内容（AI 生成） */
     private String planContent;
+
+    /** AI 生成的待确认草稿（JSON），确认发布后清空 */
+    private String draftContent;
+
+    /** 草稿状态: 0无 1待确认 2已确认发布 */
+    private Integer draftStatus;
 
     /** 复盘总结内容（AI 生成） */
     private String reviewContent;

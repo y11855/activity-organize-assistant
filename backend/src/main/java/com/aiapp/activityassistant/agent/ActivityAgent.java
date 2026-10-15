@@ -1,101 +1,96 @@
 package com.aiapp.activityassistant.agent;
 
-import com.aiapp.activityassistant.dto.TaskAssignDTO;
+import com.aiapp.activityassistant.common.context.UserContext;
+import com.aiapp.activityassistant.dto.ActivityGenerateDTO;
 import com.aiapp.activityassistant.entity.Activity;
 import com.aiapp.activityassistant.service.ActivityService;
-import com.aiapp.activityassistant.service.QuestionnaireService;
-import com.aiapp.activityassistant.service.ReminderService;
-import com.aiapp.activityassistant.service.TaskService;
-import com.aiapp.activityassistant.tool.ToolDispatcher;
+import com.aiapp.activityassistant.vo.ActivityDraftVO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * 活动管家 Agent：一句话发起活动，全流程自动跑
+ * 活动管家 Agent：AI 生成活动内容草稿
  *
- * 编排流程：规划(Plan) → 执行(Execute) → 交付(Deliver)
- * - 规划：调用大模型生成策划方案、物料清单、问卷、任务分工
- * - 执行：通过工具调度器调用日历/表单/消息工具，幂等 + 重试
- * - 交付：创建定时提醒、通知相关人员
+ * 新流程：发起人勾选生成项 → AI 生成草稿（本类，异步）→ 发起人预览/编辑 → 手动确认发布。
+ * AI 只产出草稿，不直接写入任务/物料/问卷/提醒等业务表，避免未经确认就发布内容。
  */
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActivityAgent {
 
     private final ActivityService activityService;
-    private final TaskService taskService;
-    private final QuestionnaireService questionnaireService;
-    private final ReminderService reminderService;
-    private final ToolDispatcher toolDispatcher;
     private final Planner planner;
-    private final Deliverer deliverer;
+
+    /** 草稿序列化/反序列化共用 JacksonConfig 中配置的 draftObjectMapper */
+    @Qualifier("draftObjectMapper")
+    private final ObjectMapper draftMapper;
 
     /**
-     * 运行全流程编排。
-     * 通过独立 Bean 的代理调用，{@code @Async} 生效：创建活动落库后立即返回，编排异步执行；
-     * 即使 AI/外部工具暂未接入，也只在后台兜底并记录日志，不影响活动主流程与数据落库。
+     * 异步生成活动内容草稿。
+     * 通过独立 Bean 的代理调用，{@code @Async} 生效：接口立即返回，生成在后台执行。
      */
     @Async
-    public void run(Long activityId) {
-        log.info("[Agent] 开始编排活动, activityId={}", activityId);
-        try {
-            doRun(activityId);
-        } catch (Exception e) {
-            log.error("[Agent] 活动编排失败, activityId={}", activityId, e);
-        }
-    }
-
-    private void doRun(Long activityId) {
+    public void generateDraft(Long activityId, ActivityGenerateDTO options) {
+        log.info("[Agent] 开始生成活动内容草稿, activityId={}, options={}", activityId, options);
         Activity activity = activityService.getById(activityId);
         if (activity == null) {
             log.warn("[Agent] 活动不存在, activityId={}", activityId);
             return;
         }
+        // 异步线程无请求上下文，显式以活动创建人身份运行（内部权限校验依赖 UserContext）
+        UserContext.setCurrentUserId(activity.getCreatorId());
+        try {
+            // 取消/已发布等状态变更后不再写回草稿，避免状态互斥被破坏
+            if (activity.getStatus() == null || activity.getStatus() != 1) {
+                log.warn("[Agent] 活动状态已变更，跳过草稿生成, activityId={}, status={}",
+                        activityId, activity.getStatus());
+                return;
+            }
+            PlannerResult plan = planner.plan(activity, options);
 
-        // ========== 阶段一：规划 ==========
-        log.info("[Agent] 阶段一：规划");
-        PlannerResult plan = planner.plan(activity);
+            ActivityDraftVO draft = new ActivityDraftVO();
+            draft.setOptions(options);
+            draft.setPlanContent(plan.getPlanContent());
+            draft.setMaterials(plan.getMaterials());
+            draft.setQuestions(plan.getQuestions());
+            draft.setTasks(plan.getTasks());
+            draft.setReminders(plan.getReminders());
 
-        // 保存策划内容
-        activity.setPlanContent(plan.getPlanContent());
-        activity.setStatus(1);
-        activityService.updateById(activity);
-        activityService.evictDetailCache(activityId);
-
-        // ========== 阶段二：执行 ==========
-        log.info("[Agent] 阶段二：执行");
-        // 1. 写日历（参数允许为 null，用户可只填标题，故用 HashMap 而非 Map.of）
-        Map<String, Object> calendarParams = new HashMap<>();
-        calendarParams.put("title", activity.getTitle());
-        calendarParams.put("startTime", activity.getStartTime());
-        calendarParams.put("endTime", activity.getEndTime());
-        calendarParams.put("location", activity.getLocation());
-        toolDispatcher.dispatch(activityId, "calendar", calendarParams);
-
-        // 2. 生成问卷
-        questionnaireService.generate(activityId);
-
-        // 3. 派发任务
-        for (TaskAssignDTO task : plan.getTasks()) {
-            task.setActivityId(activityId);
-            taskService.assign(task);
+            // 再次确认状态未被并发变更（如生成期间被取消）
+            Activity latest = activityService.getById(activityId);
+            if (latest == null || latest.getStatus() == null || latest.getStatus() != 1) {
+                log.warn("[Agent] 生成完成时活动状态已变更，丢弃草稿, activityId={}", activityId);
+                return;
+            }
+            latest.setPlanContent(plan.getPlanContent());
+            latest.setDraftContent(draftMapper.writeValueAsString(draft));
+            latest.setDraftStatus(1);
+            latest.setStatus(5);
+            activityService.updateById(latest);
+            activityService.evictDetailCache(activityId);
+            log.info("[Agent] 草稿生成完成, activityId={}，等待发起人确认", activityId);
+        } catch (Exception e) {
+            log.error("[Agent] 草稿生成失败, activityId={}", activityId, e);
+            rollbackToDraft(activityId);
+        } finally {
+            UserContext.clear();
         }
+    }
 
-        // ========== 阶段三：交付 ==========
-        log.info("[Agent] 阶段三：交付");
-        deliverer.deliver(activityId, plan);
-
-        activity.setStatus(2);
-        activityService.updateById(activity);
-        activityService.evictDetailCache(activityId);
-        log.info("[Agent] 活动编排完成, activityId={}", activityId);
+    /** 生成失败时回退为「待策划」，允许发起人重新生成 */
+    private void rollbackToDraft(Long activityId) {
+        Activity activity = activityService.getById(activityId);
+        if (activity != null && activity.getStatus() != null && activity.getStatus() == 1) {
+            activity.setStatus(0);
+            activity.setDraftStatus(0);
+            activityService.updateById(activity);
+            activityService.evictDetailCache(activityId);
+        }
     }
 
     /**
@@ -110,6 +105,7 @@ public class ActivityAgent {
         activity.setReviewContent(review);
         activity.setStatus(3);
         activityService.updateById(activity);
+        activityService.evictDetailCache(activityId);
         return review;
     }
 }

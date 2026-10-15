@@ -1,5 +1,6 @@
 package com.aiapp.activityassistant.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -28,5 +29,9 @@ public class TaskAssignDTO {
     private String assigneeName;
 
     @Schema(description = "截止时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deadline;
+
+    @Schema(description = "距当前的小时数（AI 生成用，换算为 deadline）")
+    private Integer deadlineOffsetHours;
 }

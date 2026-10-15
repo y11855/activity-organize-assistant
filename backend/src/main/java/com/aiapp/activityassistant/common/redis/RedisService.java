@@ -5,7 +5,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 操作工具类：缓存读写、过期、原子抢占（幂等/分布式锁）
@@ -57,7 +56,7 @@ public class RedisService {
      */
     public boolean setIfAbsent(String key, String value, Duration timeout) {
         Boolean ok = redisTemplate.opsForValue()
-                .setIfAbsent(KEY_PREFIX + key, value, timeout.getSeconds(), TimeUnit.SECONDS);
+                .setIfAbsent(KEY_PREFIX + key, value, timeout);
         return Boolean.TRUE.equals(ok);
     }
 }

@@ -21,6 +21,9 @@ uploads/
 .env
 application-local.yml
 
+# 本地启动密钥（仅保留 .example 模板入库）
+start.local.ps1
+
 # Maven
 .mvn/
 mvnw

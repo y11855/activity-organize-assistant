@@ -4,6 +4,7 @@ import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
 import com.aiapp.activityassistant.entity.TaskAssignment;
 import com.aiapp.activityassistant.service.TaskService;
+import com.aiapp.activityassistant.vo.MyTaskVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -53,5 +54,11 @@ public class TaskController {
     @GetMapping
     public Result<List<TaskAssignment>> listByActivity(@RequestParam Long activityId) {
         return Result.success(taskService.listByActivity(activityId));
+    }
+
+    @Operation(summary = "我的任务（仅分配给自己的，支持状态过滤）")
+    @GetMapping("/mine")
+    public Result<List<MyTaskVO>> listMine(@RequestParam(required = false) Integer status) {
+        return Result.success(taskService.listMine(status));
     }
 }

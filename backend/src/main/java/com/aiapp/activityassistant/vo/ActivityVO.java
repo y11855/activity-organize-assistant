@@ -34,8 +34,17 @@ public class ActivityVO {
     @Schema(description = "地点")
     private String location;
 
+    @Schema(description = "预计参与人数")
+    private Integer expectedCount;
+
+    @Schema(description = "参与成员昵称列表")
+    private List<String> memberNames;
+
     @Schema(description = "状态")
     private Integer status;
+
+    @Schema(description = "草稿状态: 0无 1待确认 2已确认发布")
+    private Integer draftStatus;
 
     @Schema(description = "AI 生成的策划内容")
     private String planContent;

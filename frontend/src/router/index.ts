@@ -40,10 +40,22 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '报名问卷', icon: 'Tickets' }
       },
       {
+        path: 'questionnaires/:id/fill',
+        name: 'questionnaire-fill',
+        component: () => import('@/views/questionnaire/QuestionnaireFill.vue'),
+        meta: { title: '填写问卷', hidden: true }
+      },
+      {
         path: 'reminders',
         name: 'reminder-list',
         component: () => import('@/views/reminder/ReminderList.vue'),
         meta: { title: '定时提醒', icon: 'Bell' }
+      },
+      {
+        path: 'tree',
+        name: 'tree-demo',
+        component: () => import('@/views/tree/TreeDemo.vue'),
+        meta: { title: '活动分解树', icon: 'Menu' }
       }
     ]
   },

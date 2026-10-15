@@ -14,11 +14,17 @@ public class QuestionnaireVO {
     @Schema(description = "活动 ID")
     private Long activityId;
 
+    @Schema(description = "活动标题")
+    private String activityTitle;
+
     @Schema(description = "问卷标题")
     private String title;
 
     @Schema(description = "问卷描述")
     private String description;
+
+    @Schema(description = "封面图URL")
+    private String coverImage;
 
     @Schema(description = "题目配置")
     private String questions;

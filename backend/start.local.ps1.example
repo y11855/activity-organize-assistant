@@ -1,0 +1,10 @@
+﻿# 本地开发密钥模板
+# 用法：复制本文件为 start.local.ps1，填入真实值后保存。
+# start.local.ps1 已在 .gitignore 中忽略，不会提交到仓库。
+
+# Jasypt 主密钥（解密 application-dev.yml 中的 ENC(...) 密文）
+$env:JASYPT_ENCRYPTOR_PASSWORD = "change-me"
+
+# DashScope（通义千问）API Key，申请地址：https://dashscope.console.aliyun.com/apiKey
+# 不配置时 AI 编排自动走兜底假数据，不影响其他功能启动
+$env:DASHSCOPE_API_KEY = "sk-xxxxxxxx"
