@@ -28,6 +28,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '活动详情', hidden: true }
       },
       {
+        path: 'activities/:id/registration',
+        name: 'activity-registration',
+        component: () => import('@/views/activity/RegistrationBoard.vue'),
+        meta: { title: '报名人员看板', hidden: true }
+      },
+      {
         path: 'tasks',
         name: 'task-list',
         component: () => import('@/views/task/TaskList.vue'),

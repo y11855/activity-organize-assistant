@@ -54,4 +54,10 @@ public class Activity extends BaseEntity {
 
     /** 复盘总结内容（AI 生成） */
     private String reviewContent;
+
+    /** 是否已发送活动结束反馈通知: 0否 1是 */
+    private Integer feedbackNotified;
+
+    /** 活动结束通知自定义模板内容 */
+    private String feedbackTemplateContent;
 }

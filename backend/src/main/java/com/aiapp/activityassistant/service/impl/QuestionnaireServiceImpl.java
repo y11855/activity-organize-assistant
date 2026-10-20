@@ -4,6 +4,7 @@ import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.exception.BusinessException;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.QuestionnaireSaveDTO;
+import com.aiapp.activityassistant.dto.ResponseExportDTO;
 import com.aiapp.activityassistant.dto.ResponseSubmitDTO;
 import com.aiapp.activityassistant.entity.Activity;
 import com.aiapp.activityassistant.entity.Questionnaire;
@@ -14,7 +15,9 @@ import com.aiapp.activityassistant.mapper.QuestionnaireResponseMapper;
 import com.aiapp.activityassistant.service.ActivityService;
 import com.aiapp.activityassistant.service.QuestionnaireService;
 import com.aiapp.activityassistant.service.UserService;
+import com.aiapp.activityassistant.vo.QuestionnaireResponseVO;
 import com.aiapp.activityassistant.vo.QuestionnaireVO;
+import com.aiapp.activityassistant.vo.ResponseStatisticsVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -176,5 +180,121 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         response.setAnswer(dto.getAnswer());
         response.setSubmitTime(LocalDateTime.now());
         responseMapper.insert(response);
+    }
+
+    @Override
+    public List<QuestionnaireResponseVO> listResponses(Long questionnaireId, Integer status) {
+        Questionnaire q = getById(questionnaireId);
+        if (q == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        activityService.checkOwnership(q.getActivityId());
+        LambdaQueryWrapper<QuestionnaireResponse> qw = new LambdaQueryWrapper<QuestionnaireResponse>()
+                .eq(QuestionnaireResponse::getQuestionnaireId, questionnaireId)
+                .orderByDesc(QuestionnaireResponse::getSubmitTime);
+        if (status != null) {
+            qw.eq(QuestionnaireResponse::getStatus, status);
+        }
+        return responseMapper.selectList(qw).stream().map(r -> {
+            QuestionnaireResponseVO vo = new QuestionnaireResponseVO();
+            vo.setId(r.getId());
+            vo.setRespondentId(r.getRespondentId());
+            vo.setRespondentName(r.getRespondentName());
+            vo.setAnswer(r.getAnswer());
+            vo.setStatus(r.getStatus());
+            vo.setSubmitTime(r.getSubmitTime());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public ResponseStatisticsVO statistics(Long questionnaireId) {
+        Questionnaire q = getById(questionnaireId);
+        if (q == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        activityService.checkOwnership(q.getActivityId());
+
+        List<QuestionnaireResponse> all = responseMapper.selectList(
+                new LambdaQueryWrapper<QuestionnaireResponse>()
+                        .eq(QuestionnaireResponse::getQuestionnaireId, questionnaireId));
+        ResponseStatisticsVO vo = new ResponseStatisticsVO();
+        vo.setTotal((long) all.size());
+
+        // 按状态分组
+        Map<Integer, Long> byStatus = all.stream()
+                .collect(Collectors.groupingBy(r -> r.getStatus() == null ? 1 : r.getStatus(),
+                        Collectors.counting()));
+        vo.setByStatus(byStatus);
+
+        // 按日期时间线（yyyy-MM-dd -> 人数），按日期升序
+        Map<String, Long> dayMap = all.stream()
+                .filter(r -> r.getSubmitTime() != null)
+                .collect(Collectors.groupingBy(r -> r.getSubmitTime().toLocalDate().toString(),
+                        java.util.TreeMap::new, Collectors.counting()));
+        List<Map<String, Object>> timeline = new ArrayList<>();
+        dayMap.forEach((date, count) -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("date", date);
+            item.put("count", count);
+            timeline.add(item);
+        });
+        vo.setTimeline(timeline);
+        return vo;
+    }
+
+    @Override
+    public byte[] exportResponses(Long questionnaireId) {
+        Questionnaire q = getById(questionnaireId);
+        if (q == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        activityService.checkOwnership(q.getActivityId());
+        List<QuestionnaireResponse> all = responseMapper.selectList(
+                new LambdaQueryWrapper<QuestionnaireResponse>()
+                        .eq(QuestionnaireResponse::getQuestionnaireId, questionnaireId)
+                        .orderByAsc(QuestionnaireResponse::getSubmitTime));
+        List<ResponseExportDTO> rows = new ArrayList<>();
+        for (int i = 0; i < all.size(); i++) {
+            QuestionnaireResponse r = all.get(i);
+            ResponseExportDTO dto = new ResponseExportDTO();
+            dto.setIndex(i + 1);
+            dto.setRespondentName(r.getRespondentName());
+            dto.setStatus(r.getStatus() != null && r.getStatus() == 2 ? "已取消" : "已报名");
+            dto.setAnswer(r.getAnswer());
+            dto.setSubmitTime(r.getSubmitTime());
+            rows.add(dto);
+        }
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        com.alibaba.excel.EasyExcel.write(out, ResponseExportDTO.class)
+                .sheet("报名人员").doWrite(rows);
+        return out.toByteArray();
+    }
+
+    @Override
+    public Long ensureFeedbackQuestionnaire(Long activityId) {
+        Questionnaire existing = getOne(new LambdaQueryWrapper<Questionnaire>()
+                .eq(Questionnaire::getActivityId, activityId)
+                .eq(Questionnaire::getType, 2));
+        if (existing != null) {
+            if (existing.getStatus() == null || existing.getStatus() != 1) {
+                existing.setStatus(1);
+                updateById(existing);
+            }
+            return existing.getId();
+        }
+        Questionnaire q = new Questionnaire();
+        q.setActivityId(activityId);
+        q.setType(2);
+        q.setTitle("活动反馈问卷");
+        q.setDescription("感谢您参与本次活动，花 1 分钟填写反馈，帮助我们改进！");
+        q.setQuestions(
+                "[{\"title\":\"整体满意度\",\"type\":\"single\",\"required\":true,\"options\":[\"非常满意\",\"满意\",\"一般\",\"不满意\"]},"
+                        + "{\"title\":\"最满意的环节\",\"type\":\"text\",\"required\":false},"
+                        + "{\"title\":\"需要改进的地方\",\"type\":\"text\",\"required\":false},"
+                        + "{\"title\":\"其他建议\",\"type\":\"text\",\"required\":false}]");
+        q.setStatus(1);
+        save(q);
+        return q.getId();
     }
 }

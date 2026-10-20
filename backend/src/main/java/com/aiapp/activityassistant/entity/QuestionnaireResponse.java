@@ -28,6 +28,9 @@ public class QuestionnaireResponse extends BaseEntity {
     /** 回答内容（JSON） */
     private String answer;
 
+    /** 报名状态: 1已报名 2已取消 */
+    private Integer status;
+
     /** 提交时间 */
     private LocalDateTime submitTime;
 }

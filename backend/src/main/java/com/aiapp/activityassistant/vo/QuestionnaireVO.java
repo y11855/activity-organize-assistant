@@ -14,6 +14,9 @@ public class QuestionnaireVO {
     @Schema(description = "活动 ID")
     private Long activityId;
 
+    @Schema(description = "问卷类型: 1报名问卷 2活动反馈问卷")
+    private Integer type;
+
     @Schema(description = "活动标题")
     private String activityTitle;
 

@@ -1,5 +1,11 @@
 import { request } from './request'
-import type { ActivityVO, ActivitySaveDTO, ActivityDraftVO, GenerateOptions } from '@/types'
+import type {
+  ActivityVO,
+  ActivitySaveDTO,
+  ActivityDraftVO,
+  GenerateOptions,
+  ActivityEventLogVO
+} from '@/types'
 
 /** 活动分解树节点 */
 export interface BreakdownNode {
@@ -67,4 +73,23 @@ export function getActivityBreakdownTree() {
 /** 确认任务分工并通知成员，返回已通知人数 */
 export function confirmTasks(id: string) {
   return request<string>({ url: `/activities/${id}/confirm-tasks`, method: 'POST' })
+}
+
+/** 活动事件记录列表 */
+export function listEventLogs(activityId: string, eventType?: number) {
+  const url =
+    eventType != null
+      ? `/activities/${activityId}/event-logs?eventType=${eventType}`
+      : `/activities/${activityId}/event-logs`
+  return request<ActivityEventLogVO[]>({ url, method: 'GET' })
+}
+
+/** 新增活动事件记录 */
+export function addEventLog(activityId: string, payload: { eventType: number; content: string; occurredAt?: string }) {
+  return request<string>({ url: `/activities/${activityId}/event-logs`, method: 'POST', data: payload })
+}
+
+/** 删除活动事件记录 */
+export function deleteEventLog(activityId: string, id: string) {
+  return request<void>({ url: `/activities/${activityId}/event-logs/${id}`, method: 'DELETE' })
 }

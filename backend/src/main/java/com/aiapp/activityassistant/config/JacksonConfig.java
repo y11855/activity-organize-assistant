@@ -7,6 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 /**
  * Jackson 全局配置：Long 序列化为字符串，避免雪花 ID 在前端 JS number 中精度丢失
@@ -19,6 +21,19 @@ public class JacksonConfig {
         return builder -> builder
                 .serializerByType(Long.class, ToStringSerializer.instance)
                 .serializerByType(Long.TYPE, ToStringSerializer.instance);
+    }
+
+    /**
+     * HTTP 响应主 ObjectMapper（@Primary）。
+     * 必须显式声明：本类中的 draftObjectMapper 同样是 ObjectMapper 类型的 Bean，
+     * 会满足 Spring Boot 自动配置的 @ConditionalOnMissingBean 条件、导致默认主 mapper 不再创建，
+     * 从而使 HTTP 响应退化为「雪花 ID 以数字返回」，前端 JS 大整数精度丢失 → 请求 id 失真。
+     * 这里基于自动配置的 Jackson2ObjectMapperBuilder（已应用上面的自定义定制）构建主 mapper。
+     */
+    @Bean
+    @Primary
+    public ObjectMapper primaryObjectMapper(Jackson2ObjectMapperBuilder builder) {
+        return builder.createXmlMapper(false).build();
     }
 
     /**

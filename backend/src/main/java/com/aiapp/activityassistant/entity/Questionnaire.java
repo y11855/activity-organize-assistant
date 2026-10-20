@@ -15,6 +15,9 @@ public class Questionnaire extends BaseEntity {
 
     private Long activityId;
 
+    /** 问卷类型: 1报名问卷 2活动反馈问卷 */
+    private Integer type;
+
     /** 问卷标题 */
     private String title;
 

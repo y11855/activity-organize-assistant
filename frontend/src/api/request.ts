@@ -23,6 +23,10 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   (response) => {
+    // 文件下载等二进制响应直接返回
+    if (response.config.responseType === 'blob') {
+      return response.data
+    }
     const { code, message, data } = response.data ?? {}
     if (code === 200) {
       return data ?? response.data

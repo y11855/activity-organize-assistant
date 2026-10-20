@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getActivityDetail,
@@ -9,7 +9,10 @@ import {
   generateActivityContent,
   getActivityDraft,
   updateActivityDraft,
-  publishActivity
+  publishActivity,
+  listEventLogs,
+  addEventLog,
+  deleteEventLog
 } from '@/api/activity'
 import { listUsers } from '@/api/user'
 import type {
@@ -18,11 +21,13 @@ import type {
   GenerateOptions,
   QuestionDraft,
   TaskAssignDTO,
-  UserSimpleVO
+  UserSimpleVO,
+  ActivityEventLogVO
 } from '@/types'
 import { formatDate } from '@/utils'
 
 const route = useRoute()
+const router = useRouter()
 const id = String(route.params.id)
 const detail = ref<ActivityVO | null>(null)
 const loading = ref(false)
@@ -274,8 +279,106 @@ async function onConfirmTasks() {
   }
 }
 
-onMounted(load)
+onMounted(loadAll)
 onUnmounted(stopPolling)
+
+/* ===================== 报名人员看板 ===================== */
+function goRegistration() {
+  router.push({ name: 'activity-registration', params: { id } })
+}
+
+/* ===================== 活动事件记录 ===================== */
+const eventLogs = ref<ActivityEventLogVO[]>([])
+const eventLoading = ref(false)
+const eventFormVisible = ref(false)
+const eventTypeOptions: {
+  label: string
+  value: number
+  type: 'success' | 'info' | 'danger' | 'warning' | 'primary'
+}[] = [
+  { label: '普通事件', value: 1, type: 'info' },
+  { label: '关键节点', value: 2, type: 'primary' },
+  { label: '问题', value: 3, type: 'danger' },
+  { label: '亮点', value: 4, type: 'success' }
+]
+const eventForm = ref({ eventType: 1, content: '', occurredAt: '' })
+
+async function loadEventLogs() {
+  eventLoading.value = true
+  try {
+    eventLogs.value = await listEventLogs(id)
+  } finally {
+    eventLoading.value = false
+  }
+}
+
+function openEventForm() {
+  eventForm.value = { eventType: 1, content: '', occurredAt: '' }
+  eventFormVisible.value = true
+}
+
+async function submitEvent() {
+  if (!eventForm.value.content.trim()) {
+    ElMessage.warning('请填写事件内容')
+    return
+  }
+  try {
+    await addEventLog(id, eventForm.value)
+    ElMessage.success('事件已记录')
+    eventFormVisible.value = false
+    await loadEventLogs()
+  } catch {
+    // 错误已在拦截器处理
+  }
+}
+
+async function removeEvent(eid: string) {
+  try {
+    await ElMessageBox.confirm('确认删除该事件记录？', '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+  await deleteEventLog(id, eid)
+  ElMessage.success('已删除')
+  await loadEventLogs()
+}
+
+const eventTypeTag = (t: number) => eventTypeOptions.find((o) => o.value === t)
+
+// 活动已发布（含进行中/已完成）时展示事件记录与复盘
+const showOpsPanel = computed(() => detail.value && (detail.value.status === 2 || detail.value.status === 3))
+
+/* ===================== 复盘结构化解析 ===================== */
+interface ReviewStruct {
+  summary: string
+  highlights: string[]
+  issues: string[]
+  suggestions: string[]
+}
+const reviewStruct = computed<ReviewStruct | null>(() => {
+  const raw = detail.value?.reviewContent
+  if (!raw) return null
+  try {
+    const obj = JSON.parse(raw)
+    return {
+      summary: obj.summary || '',
+      highlights: Array.isArray(obj.highlights) ? obj.highlights : [],
+      issues: Array.isArray(obj.issues) ? obj.issues : [],
+      suggestions: Array.isArray(obj.suggestions) ? obj.suggestions : []
+    }
+  } catch {
+    return { summary: raw, highlights: [], issues: [], suggestions: [] }
+  }
+})
+
+// 事件记录在活动加载后一并拉取
+async function loadAll() {
+  await load()
+  if (showOpsPanel.value) {
+    loadEventLogs()
+  }
+}
+
 </script>
 
 <template>
@@ -302,7 +405,12 @@ onUnmounted(stopPolling)
               >
                 确认分工并通知成员
               </el-button>
+              <el-button @click="goRegistration">报名人员看板</el-button>
               <el-button type="primary" :loading="reviewing" @click="onReview">生成复盘总结</el-button>
+            </template>
+            <template v-if="detail.status === 3">
+              <el-button @click="goRegistration">报名人员看板</el-button>
+              <el-button type="primary" :loading="reviewing" @click="onReview">重新生成复盘</el-button>
             </template>
           </div>
         </div>
@@ -569,11 +677,108 @@ onUnmounted(stopPolling)
       </el-table>
     </el-card>
 
-    <el-card v-if="detail?.reviewContent" style="margin-top: 16px">
+    <!-- 活动事件记录（已发布后可记录，用于 AI 复盘） -->
+    <el-card v-if="showOpsPanel" style="margin-top: 16px">
+      <template #header>
+        <div class="detail__header">
+          <span>活动事件记录（关键节点 / 亮点 / 问题，将用于 AI 复盘）</span>
+          <el-button type="primary" size="small" @click="openEventForm">记录事件</el-button>
+        </div>
+      </template>
+      <el-table v-loading="eventLoading" :data="eventLogs" border>
+        <el-table-column label="类型" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="eventTypeTag(row.eventType)?.type ?? 'info'">
+              {{ eventTypeTag(row.eventType)?.label ?? '普通事件' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="content" label="事件内容" min-width="280" />
+        <el-table-column label="发生时间" width="170">
+          <template #default="{ row }">{{ row.occurredAt ? formatDate(row.occurredAt) : '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="recorderName" label="记录人" width="120" />
+        <el-table-column label="操作" width="80" align="center">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="removeEvent(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!eventLoading && !eventLogs.length" description="暂无事件记录，点击右上角记录" :image-size="80" />
+    </el-card>
+
+    <!-- 复盘总结（结构化展示） -->
+    <el-card v-if="reviewStruct" style="margin-top: 16px">
       <template #header>复盘总结</template>
-      <div style="white-space: pre-wrap">{{ detail.reviewContent }}</div>
+      <el-alert
+        v-if="reviewStruct.summary"
+        :title="reviewStruct.summary"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+      <el-row :gutter="16">
+        <el-col :span="8" v-if="reviewStruct.highlights.length">
+          <div class="review-block">
+            <div class="review-block__title">
+              <el-tag type="success">亮点</el-tag>
+            </div>
+            <ul class="review-list">
+              <li v-for="(h, i) in reviewStruct.highlights" :key="`h${i}`">{{ h }}</li>
+            </ul>
+          </div>
+        </el-col>
+        <el-col :span="8" v-if="reviewStruct.issues.length">
+          <div class="review-block">
+            <div class="review-block__title">
+              <el-tag type="danger">问题</el-tag>
+            </div>
+            <ul class="review-list">
+              <li v-for="(it, i) in reviewStruct.issues" :key="`i${i}`">{{ it }}</li>
+            </ul>
+          </div>
+        </el-col>
+        <el-col :span="8" v-if="reviewStruct.suggestions.length">
+          <div class="review-block">
+            <div class="review-block__title">
+              <el-tag type="warning">改进建议</el-tag>
+            </div>
+            <ul class="review-list">
+              <li v-for="(s, i) in reviewStruct.suggestions" :key="`s${i}`">{{ s }}</li>
+            </ul>
+          </div>
+        </el-col>
+      </el-row>
     </el-card>
   </div>
+
+  <!-- 事件记录表单 -->
+  <el-dialog v-model="eventFormVisible" title="记录活动事件" width="520px">
+    <el-form label-width="80px">
+      <el-form-item label="事件类型">
+        <el-select v-model="eventForm.eventType" style="width: 100%">
+          <el-option v-for="o in eventTypeOptions" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="发生时间">
+        <el-date-picker
+          v-model="eventForm.occurredAt"
+          type="datetime"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          placeholder="默认当前时间"
+          style="width: 100%"
+        />
+      </el-form-item>
+      <el-form-item label="事件内容">
+        <el-input v-model="eventForm.content" type="textarea" :rows="4" placeholder="描述事件、问题或亮点..." />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="eventFormVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitEvent">保存</el-button>
+    </template>
+  </el-dialog>
 
   <!-- AI 生成内容配置表 -->
   <el-dialog v-model="optionVisible" title="AI 生成内容配置" width="480px">
@@ -607,5 +812,16 @@ onUnmounted(stopPolling)
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.review-block__title {
+  margin-bottom: 8px;
+}
+
+.review-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--el-text-color-regular);
+  line-height: 1.8;
 }
 </style>

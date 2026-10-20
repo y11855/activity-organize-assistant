@@ -86,6 +86,7 @@ export interface QuestionnaireVO {
   id: string
   activityid: string
   activityTitle?: string
+  type?: number
   title: string
   description?: string
   coverImage?: string
@@ -93,6 +94,35 @@ export interface QuestionnaireVO {
   status: number
   responseCount?: number
   createTime: string
+}
+
+/** 报名人员明细 */
+export interface QuestionnaireResponseVO {
+  id: string
+  respondentId?: string
+  respondentName?: string
+  answer?: string
+  status: number
+  submitTime?: string
+}
+
+/** 报名统计看板 */
+export interface ResponseStatisticsVO {
+  total: number
+  byStatus: Record<number, number>
+  timeline: { date: string; count: number }[]
+}
+
+/** 活动事件记录 */
+export interface ActivityEventLogVO {
+  id: string
+  activityId: string
+  eventType: number
+  content: string
+  occurredAt?: string
+  recorderId?: string
+  recorderName?: string
+  createTime?: string
 }
 
 /** 我的任务（个人分工） */

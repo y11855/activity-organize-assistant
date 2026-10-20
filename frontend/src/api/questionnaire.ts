@@ -1,5 +1,5 @@
 import { request } from './request'
-import type { QuestionnaireVO } from '@/types'
+import type { QuestionnaireVO, QuestionnaireResponseVO, ResponseStatisticsVO } from '@/types'
 
 /** 为活动生成问卷 */
 export function generateQuestionnaire(activityId: string) {
@@ -47,4 +47,24 @@ export function updateQuestionnaire(
 /** 提交答卷 */
 export function submitResponse(id: string, answer: string) {
   return request<void>({ url: `/questionnaires/${id}/responses`, method: 'POST', data: { answer } })
+}
+
+/** 报名人员明细列表 */
+export function listResponses(id: string, status?: number) {
+  const url = status != null ? `/questionnaires/${id}/responses?status=${status}` : `/questionnaires/${id}/responses`
+  return request<QuestionnaireResponseVO[]>({ url, method: 'GET' })
+}
+
+/** 报名统计看板 */
+export function getStatistics(id: string) {
+  return request<ResponseStatisticsVO>({ url: `/questionnaires/${id}/statistics`, method: 'GET' })
+}
+
+/** 导出报名人员 Excel */
+export function exportResponses(id: string) {
+  return request<Blob>({
+    url: `/questionnaires/${id}/responses/export`,
+    method: 'GET',
+    responseType: 'blob'
+  })
 }

@@ -3,14 +3,24 @@ package com.aiapp.activityassistant.agent;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.dto.ActivityGenerateDTO;
 import com.aiapp.activityassistant.entity.Activity;
+import com.aiapp.activityassistant.entity.ActivityEventLog;
+import com.aiapp.activityassistant.entity.Questionnaire;
+import com.aiapp.activityassistant.entity.QuestionnaireResponse;
+import com.aiapp.activityassistant.mapper.ActivityEventLogMapper;
+import com.aiapp.activityassistant.mapper.QuestionnaireMapper;
+import com.aiapp.activityassistant.mapper.QuestionnaireResponseMapper;
 import com.aiapp.activityassistant.service.ActivityService;
 import com.aiapp.activityassistant.vo.ActivityDraftVO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 活动管家 Agent：AI 生成活动内容草稿
@@ -25,6 +35,9 @@ public class ActivityAgent {
 
     private final ActivityService activityService;
     private final Planner planner;
+    private final QuestionnaireMapper questionnaireMapper;
+    private final QuestionnaireResponseMapper responseMapper;
+    private final ActivityEventLogMapper eventLogMapper;
 
     /** 草稿序列化/反序列化共用 JacksonConfig 中配置的 draftObjectMapper */
     @Qualifier("draftObjectMapper")
@@ -94,14 +107,27 @@ public class ActivityAgent {
     }
 
     /**
-     * 生成活动复盘总结
+     * 生成活动复盘总结：综合策划方案 + 参与者反馈问卷 + 发起人事件记录
      */
     public String review(Long activityId) {
         Activity activity = activityService.getById(activityId);
         if (activity == null) {
             return null;
         }
-        String review = planner.review(activity);
+        // 反馈问卷（type=2）的答卷数据
+        Questionnaire feedbackQ = questionnaireMapper.selectOne(new LambdaQueryWrapper<Questionnaire>()
+                .eq(Questionnaire::getActivityId, activityId)
+                .eq(Questionnaire::getType, 2)
+                .last("LIMIT 1"));
+        List<QuestionnaireResponse> feedbackResponses = (feedbackQ == null) ? Collections.emptyList()
+                : responseMapper.selectList(new LambdaQueryWrapper<QuestionnaireResponse>()
+                        .eq(QuestionnaireResponse::getQuestionnaireId, feedbackQ.getId()));
+        // 活动事件记录
+        List<ActivityEventLog> eventLogs = eventLogMapper.selectList(new LambdaQueryWrapper<ActivityEventLog>()
+                .eq(ActivityEventLog::getActivityId, activityId)
+                .orderByAsc(ActivityEventLog::getOccurredAt));
+
+        String review = planner.review(activity, feedbackResponses, eventLogs);
         activity.setReviewContent(review);
         activity.setStatus(3);
         activityService.updateById(activity);

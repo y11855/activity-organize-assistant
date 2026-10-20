@@ -8,6 +8,8 @@ import com.aiapp.activityassistant.dto.QuestionDraftDTO;
 import com.aiapp.activityassistant.dto.ReminderDraftDTO;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
 import com.aiapp.activityassistant.entity.Activity;
+import com.aiapp.activityassistant.entity.ActivityEventLog;
+import com.aiapp.activityassistant.entity.QuestionnaireResponse;
 import com.aiapp.activityassistant.entity.User;
 import com.aiapp.activityassistant.service.UserService;
 import com.aiapp.activityassistant.vo.MaterialVO;
@@ -288,19 +290,88 @@ public class Planner {
     }
 
     /**
-     * 复盘总结
+     * 复盘总结：综合活动策划、参与者反馈问卷、发起人事件记录，生成结构化 JSON 复盘
+     * 返回
+     * JSON：{"summary":"...","highlights":[...],"issues":[...],"suggestions":[...]}
      */
-    public String review(Activity activity) {
+    public String review(Activity activity, List<QuestionnaireResponse> feedbackResponses,
+            List<ActivityEventLog> eventLogs) {
         AiProvider ai = aiProviderRouter.choose();
-        String systemPrompt = "你是活动复盘助手。根据活动信息生成简短的复盘总结，包括：亮点、问题、改进建议。";
-        String userPrompt = String.format("活动标题：%s\n策划：%s\n请生成复盘总结。",
-                activity.getTitle(), activity.getPlanContent());
+        String systemPrompt = "你是专业的活动复盘助手。请基于活动策划方案、参与者反馈问卷数据、以及活动期间记录的事件/亮点/问题，生成一份结构化的活动复盘报告。"
+                + "必须严格返回 JSON，不要包含任何额外文字或 Markdown 代码块，格式如下："
+                + "{\"summary\":\"整体效果评估（100-200字）\",\"highlights\":[\"亮点1\",\"亮点2\"],"
+                + "\"issues\":[\"问题1\",\"问题2\"],\"suggestions\":[\"改进建议1\",\"改进建议2\"]}";
+
+        StringBuilder userPrompt = new StringBuilder();
+        userPrompt.append("活动标题：").append(activity.getTitle()).append("\n");
+        userPrompt.append("活动策划方案：\n").append(activity.getPlanContent() == null ? "（无）" : activity.getPlanContent())
+                .append("\n\n");
+
+        // 参与者反馈汇总
+        userPrompt.append("=== 参与者反馈问卷（共 ").append(feedbackResponses.size()).append(" 份）===\n");
+        if (feedbackResponses.isEmpty()) {
+            userPrompt.append("（暂无反馈数据）\n");
+        } else {
+            for (QuestionnaireResponse r : feedbackResponses) {
+                userPrompt.append("- ").append(r.getRespondentName() == null ? "匿名" : r.getRespondentName())
+                        .append("：").append(r.getAnswer() == null ? "" : r.getAnswer()).append("\n");
+            }
+        }
+        userPrompt.append("\n");
+
+        // 事件记录分组
+        userPrompt.append("=== 活动期间事件记录 ===\n");
+        if (eventLogs.isEmpty()) {
+            userPrompt.append("（暂无事件记录）\n");
+        } else {
+            userPrompt.append("【关键节点】\n");
+            appendEvents(userPrompt, eventLogs, 2);
+            userPrompt.append("【亮点】\n");
+            appendEvents(userPrompt, eventLogs, 4);
+            userPrompt.append("【问题】\n");
+            appendEvents(userPrompt, eventLogs, 3);
+            userPrompt.append("【普通事件】\n");
+            appendEvents(userPrompt, eventLogs, 1);
+        }
+
         try {
-            return ai.chat(systemPrompt, userPrompt);
+            String aiText = ai.chat(systemPrompt, userPrompt.toString());
+            return normalizeJson(aiText);
         } catch (Exception e) {
             log.error("[规划器] 复盘 AI 调用失败", e);
             return "（复盘生成失败，请手动填写）";
         }
+    }
+
+    private void appendEvents(StringBuilder sb, List<ActivityEventLog> logs, int type) {
+        List<ActivityEventLog> filtered = logs.stream()
+                .filter(l -> l.getEventType() != null && l.getEventType() == type)
+                .toList();
+        if (filtered.isEmpty()) {
+            sb.append("（无）\n");
+            return;
+        }
+        for (ActivityEventLog l : filtered) {
+            sb.append("- [").append(l.getOccurredAt() == null ? "" : l.getOccurredAt().toString().replace('T', ' '))
+                    .append("] ").append(l.getContent()).append("\n");
+        }
+    }
+
+    /** 把 AI 可能返回的 ```json ... ``` 或前后多余文本收敛为纯 JSON */
+    private String normalizeJson(String text) {
+        if (text == null) {
+            return "{}";
+        }
+        String s = text.trim();
+        if (s.startsWith("```")) {
+            s = s.replaceAll("^```(json)?", "").replaceAll("```$", "").trim();
+        }
+        int start = s.indexOf('{');
+        int end = s.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return s.substring(start, end + 1);
+        }
+        return s;
     }
 
     private PlannerResult fallbackPlan(Activity activity, ActivityGenerateDTO options) {
