@@ -10,7 +10,7 @@ import {
 } from '@/api/questionnaire'
 import { uploadFile } from '@/api/file'
 import type { QuestionnaireVO } from '@/types'
-import { formatDate } from '@/utils'
+import { debounce, formatDate } from '@/utils'
 
 const router = useRouter()
 const list = ref<QuestionnaireVO[]>([])
@@ -93,11 +93,13 @@ async function onRemoveCover() {
   }
 }
 
-async function onSave() {
+const onSave = debounce(async () => {
+  if (saving.value) return
   if (!form.value.title.trim()) {
     ElMessage.warning('请输入问卷标题')
     return
   }
+
   saving.value = true
   try {
     await updateQuestionnaire(form.value.id, {
@@ -113,20 +115,22 @@ async function onSave() {
   } finally {
     saving.value = false
   }
-}
+}, 500)
 
-async function onPublish(row: QuestionnaireVO) {
+const onPublish = debounce(async (row: QuestionnaireVO) => {
+  if (loading.value) return
   await publishQuestionnaire(row.id)
   ElMessage.success('问卷已发布')
   loadList()
-}
+}, 500)
 
-async function onClose(row: QuestionnaireVO) {
+const onClose = debounce(async (row: QuestionnaireVO) => {
+  if (loading.value) return
   await ElMessageBox.confirm('确定截止该问卷吗？截止后将无法提交答卷。', '提示', { type: 'warning' })
   await closeQuestionnaire(row.id)
   ElMessage.success('问卷已截止')
   loadList()
-}
+}, 500)
 
 onMounted(loadList)
 </script>
