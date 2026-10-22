@@ -6,7 +6,7 @@ import { listMyActivities, createActivity, cancelActivity } from '@/api/activity
 import { listUsers } from '@/api/user'
 import { useUserStore } from '@/stores'
 import type { ActivityVO, ActivitySaveDTO, UserSimpleVO } from '@/types'
-import { formatDate } from '@/utils'
+import { debounce, formatDate } from '@/utils'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -69,11 +69,13 @@ async function openDialog() {
   }
 }
 
-async function onCreate() {
+const onCreate = debounce(async () => {
+  if (creating.value) return
   if (!form.value.title.trim()) {
     ElMessage.warning('请输入活动标题')
     return
   }
+
   creating.value = true
   try {
     const id = await createActivity(form.value)
@@ -94,7 +96,7 @@ async function onCreate() {
   } finally {
     creating.value = false
   }
-}
+}, 500)
 
 function openCancel(id: string) {
   cancelTarget.value = id
@@ -102,7 +104,9 @@ function openCancel(id: string) {
   cancelVisible.value = true
 }
 
-async function onConfirmCancel() {
+const onConfirmCancel = debounce(async () => {
+  if (cancelling.value) return
+
   cancelling.value = true
   try {
     await cancelActivity(cancelTarget.value, deleteRecord.value)
@@ -114,7 +118,7 @@ async function onConfirmCancel() {
   } finally {
     cancelling.value = false
   }
-}
+}, 500)
 
 /** 删除已取消活动的记录，含级联清除任务/物料/问卷及答案/提醒/消息，不可恢复 */
 async function onDeleteRecord(id: string) {
