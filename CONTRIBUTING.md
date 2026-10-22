@@ -8,7 +8,7 @@
 | --- | --- |
 | JDK | 17+ |
 | Node.js | 18+ |
-| pnpm | 8+ |
+| npm | 9+ |
 | Maven | 3.8+ |
 | MySQL | 8.0+ |
 | Redis | 6+ |
@@ -23,9 +23,9 @@
    cp frontend/.env.development frontend/.env.local
    ```
 
-3. 启动中间件（推荐使用 `docker-compose up -d`）
+3. 准备中间件（本机安装 MySQL 8 与 Redis，并创建 `activity_assistant` 库）
 4. 启动后端：`cd backend && mvn spring-boot:run`
-5. 启动前端：`cd frontend && pnpm install && pnpm dev`
+5. 启动前端：`cd frontend && npm install && npm run dev`
 
 ## 三、提交规范
 
@@ -65,7 +65,7 @@ body（可选）
 
 - 后端：包名小写、类名 PascalCase、方法 camelCase；遵循项目已有的分层（controller/service/mapper）
 - 前端：目录 kebab-case、组件 PascalCase、组合式函数 `useXxx`
-- 使用 `pnpm lint` 与 `mvn -q -DskipTests compile` 进行自检
+- 使用 `npm run lint` 与 `mvn -q -DskipTests compile` 进行自检
 - 提交前请确保没有引入新的 warning
 
 ## 五、Pull Request 流程

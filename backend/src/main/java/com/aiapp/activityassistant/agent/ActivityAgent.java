@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 活动管家 Agent：AI 生成活动内容草稿
@@ -59,7 +60,7 @@ public class ActivityAgent {
         UserContext.setCurrentUserId(activity.getCreatorId());
         try {
             // 取消/已发布等状态变更后不再写回草稿，避免状态互斥被破坏
-            if (activity.getStatus() == null || activity.getStatus() != 1) {
+            if (!Objects.equals(activity.getStatus(), 1)) {
                 log.warn("[Agent] 活动状态已变更，跳过草稿生成, activityId={}, status={}",
                         activityId, activity.getStatus());
                 return;
@@ -76,7 +77,7 @@ public class ActivityAgent {
 
             // 再次确认状态未被并发变更（如生成期间被取消）
             Activity latest = activityService.getById(activityId);
-            if (latest == null || latest.getStatus() == null || latest.getStatus() != 1) {
+            if (latest == null || !Objects.equals(latest.getStatus(), 1)) {
                 log.warn("[Agent] 生成完成时活动状态已变更，丢弃草稿, activityId={}", activityId);
                 return;
             }

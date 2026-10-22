@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -167,17 +168,37 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         if (q == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        if (q.getStatus() == null || q.getStatus() != 1) {
+        if (!Objects.equals(q.getStatus(), 1)) {
             throw new BusinessException(ResultCode.BUSINESS_ERROR, "问卷未发布或已截止，无法提交");
         }
         Long currentUserId = UserContext.getCurrentUserId();
         User user = userService.getById(currentUserId);
+
+        // 同一用户对同一问卷只保留一条答卷：已提交过则更新原记录，避免重复提交把报名人数刷高。
+        // 历史数据可能已存在重复行，用 limit 1 取最新一条，避免 selectOne 抛 TooManyResults。
+        QuestionnaireResponse existing = responseMapper.selectOne(
+                new LambdaQueryWrapper<QuestionnaireResponse>()
+                        .eq(QuestionnaireResponse::getQuestionnaireId, q.getId())
+                        .eq(QuestionnaireResponse::getRespondentId, currentUserId)
+                        .orderByDesc(QuestionnaireResponse::getSubmitTime)
+                        .last("limit 1"));
+        if (existing != null) {
+            existing.setAnswer(dto.getAnswer());
+            existing.setSubmitTime(LocalDateTime.now());
+            existing.setRespondentName(user == null ? "未知用户" : user.getNickname());
+            // 之前取消过报名的用户重新提交时，恢复为已报名
+            existing.setStatus(1);
+            responseMapper.updateById(existing);
+            return;
+        }
+
         QuestionnaireResponse response = new QuestionnaireResponse();
         response.setQuestionnaireId(q.getId());
         response.setActivityId(q.getActivityId());
         response.setRespondentId(currentUserId);
         response.setRespondentName(user == null ? "未知用户" : user.getNickname());
         response.setAnswer(dto.getAnswer());
+        response.setStatus(1);
         response.setSubmitTime(LocalDateTime.now());
         responseMapper.insert(response);
     }
@@ -277,7 +298,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
                 .eq(Questionnaire::getActivityId, activityId)
                 .eq(Questionnaire::getType, 2));
         if (existing != null) {
-            if (existing.getStatus() == null || existing.getStatus() != 1) {
+            if (!Objects.equals(existing.getStatus(), 1)) {
                 existing.setStatus(1);
                 updateById(existing);
             }

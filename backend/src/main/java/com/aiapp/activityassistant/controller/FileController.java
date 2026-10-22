@@ -7,6 +7,7 @@ import com.aiapp.activityassistant.common.result.ResultCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,8 +34,9 @@ public class FileController {
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
     /** 单张图片最大 5MB */
     private static final long MAX_SIZE = 5 * 1024 * 1024;
-    /** 存储目录（相对应用工作目录 backend/） */
-    private static final Path UPLOAD_DIR = Paths.get("uploads");
+    /** 存储目录（默认相对启动目录，Tomcat 部署时由 UPLOAD_DIR 指定绝对路径） */
+    @Value("${app.upload-dir:uploads}")
+    private String uploadDir;
 
     @Operation(summary = "上传图片（jpg/png/webp，≤5MB）")
     @PostMapping("/upload")
@@ -57,8 +59,9 @@ public class FileController {
 
         String filename = IdUtil.fastSimpleUUID() + "." + ext;
         try {
-            Files.createDirectories(UPLOAD_DIR);
-            file.transferTo(UPLOAD_DIR.resolve(filename).toAbsolutePath());
+            Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(dir);
+            file.transferTo(dir.resolve(filename));
         } catch (IOException e) {
             log.error("[文件上传] 保存失败", e);
             throw new BusinessException(ResultCode.SERVER_ERROR, "图片保存失败，请重试");

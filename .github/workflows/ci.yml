@@ -38,13 +38,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install pnpm
-        run: npm install -g pnpm@8
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: npm ci
       - name: Lint
-        run: pnpm run lint
+        run: npm run lint
       - name: Type check
-        run: pnpm exec vue-tsc --noEmit
+        run: npx vue-tsc --noEmit
       - name: Build
-        run: pnpm run build
+        run: npm run build

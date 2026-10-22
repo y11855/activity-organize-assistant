@@ -16,6 +16,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>activity-assistant</name>
     <description>社团/班级活动组织 AI 助手 - 后端</description>
+    <!-- 部署到外部 Tomcat 做集群，因此打包为 war（war 文件名决定上下文路径） -->
+    <packaging>war</packaging>
 
     <properties>
         <java.version>17</java.version>
@@ -24,7 +26,6 @@
         <jasypt.version>3.0.5</jasypt.version>
         <hutool.version>5.8.27</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
-        <minio.version>8.5.11</minio.version>
         <easyexcel.version>3.3.4</easyexcel.version>
         <lombok.version>1.18.38</lombok.version>
     </properties>
@@ -34,6 +35,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- 外部 Tomcat 提供容器：scope=provided 使其不打进 war 的 WEB-INF/lib（直接声明优先于传递依赖） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- 健康检查端点：/api/actuator/health，供容器/部署时探活 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -81,13 +93,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- 文件存储 -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>${minio.version}</version>
-        </dependency>
-
         <!-- Excel 导入导出 -->
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -117,7 +122,8 @@
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}</finalName>
+        <!-- war 文件名决定部署到外部 Tomcat 后的上下文路径：api.war → /api -->
+        <finalName>api</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

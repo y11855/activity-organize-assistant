@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -147,7 +148,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         // 状态互斥：仅「待确认」状态的内容可编辑
-        if (activity.getStatus() == null || activity.getStatus() != 5
+        if (!Objects.equals(activity.getStatus(), 5)
                 || !Integer.valueOf(1).equals(activity.getDraftStatus())) {
             throw new BusinessException(ResultCode.BUSINESS_ERROR, "仅待确认状态的内容可以编辑");
         }
@@ -167,7 +168,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         // 状态互斥：必须处于「待确认」且草稿就绪，防止未经确认直接发布
-        if (activity.getStatus() == null || activity.getStatus() != 5
+        if (!Objects.equals(activity.getStatus(), 5)
                 || !Integer.valueOf(1).equals(activity.getDraftStatus())) {
             throw new BusinessException(ResultCode.BUSINESS_ERROR, "当前状态不可确认发布，请先完成 AI 生成");
         }
@@ -507,7 +508,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         checkOwnership(id);
         Activity activity = getById(id);
         // 状态互斥：任务必须先经发起人确认发布，才能通知成员
-        if (activity.getStatus() == null || activity.getStatus() != 2) {
+        if (!Objects.equals(activity.getStatus(), 2)) {
             throw new BusinessException(ResultCode.BUSINESS_ERROR, "请先确认并发布 AI 生成的内容，再通知成员");
         }
         List<TaskAssignment> tasks = taskService.listByActivity(id);

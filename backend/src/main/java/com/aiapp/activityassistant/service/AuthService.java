@@ -27,13 +27,16 @@ public class AuthService {
 
     private final UserService userService;
     private final RedisService redisService;
+    private final LoginCryptoService loginCryptoService;
 
     /**
-     * 登录：校验用户名密码，签发 token
+     * 登录：解密前端传来的密码密文 → 校验用户名密码 → 签发 token
      */
     public LoginVO login(LoginDTO dto) {
+        // 前端用 RSA 公钥加密密码，这里先解密还原明文，再交给 BCrypt 校验
+        String rawPassword = loginCryptoService.decrypt(dto.getPassword());
         User user = userService.getByUsername(dto.getUsername());
-        if (user == null || !BCrypt.checkpw(dto.getPassword(), user.getPassword())) {
+        if (user == null || !BCrypt.checkpw(rawPassword, user.getPassword())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "用户名或密码错误");
         }
         String token = IdUtil.fastSimpleUUID();

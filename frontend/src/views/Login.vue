@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
 import { login } from '@/api/auth'
 import { debounce } from '@/utils'
+import { encryptPassword } from '@/utils/loginCrypto'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -20,8 +21,17 @@ const onLogin = debounce(async () => {
   if (loading.value) return
 
   loading.value = true
+  let encryptedPassword: string
   try {
-    const res = await login(form.value)
+    // 密码先在前端用 RSA 公钥加密，请求体中不再出现明文
+    encryptedPassword = await encryptPassword(form.value.password)
+  } catch {
+    ElMessage.error('密码加密失败，请刷新页面后重试')
+    loading.value = false
+    return
+  }
+  try {
+    const res = await login({ username: form.value.username, password: encryptedPassword })
     userStore.setToken(res.token)
     userStore.setUserInfo({
       id: res.id,

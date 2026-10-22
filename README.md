@@ -113,8 +113,8 @@ template-web/
 ## 快速启动
 
 ```bash
-# 1. 启动中间件（MySQL / Redis / MinIO）
-docker compose up -d
+# 1. 准备中间件：本机安装 MySQL 8 与 Redis，并创建库
+#    CREATE DATABASE activity_assistant CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 # 2. 配置环境变量
 cp backend/env.example backend/.env.local   # 填入 MySQL 密码与 AI API Key
@@ -125,8 +125,8 @@ mvn spring-boot:run          # http://localhost:8080/api
 
 # 4. 启动前端
 cd frontend
-pnpm install
-pnpm dev                     # http://localhost:5173
+npm install
+npm run dev                  # http://localhost:5173
 ```
 
 ## 环境变量
