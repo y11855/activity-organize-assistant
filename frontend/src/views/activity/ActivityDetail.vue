@@ -24,7 +24,7 @@ import type {
   UserSimpleVO,
   ActivityEventLogVO
 } from '@/types'
-import { formatDate } from '@/utils'
+import { debounce, formatDate } from '@/utils'
 
 const route = useRoute()
 const router = useRouter()
@@ -153,7 +153,8 @@ function openOptions() {
 }
 
 /** 触发 AI 生成（仅草稿/待确认状态可用） */
-async function onGenerate() {
+const onGenerate = debounce(async () => {
+  if (generating.value) return
   if (!options.value.tasks && !options.value.materials && !options.value.questionnaire && !options.value.reminders) {
     ElMessage.warning('请至少勾选一项需要 AI 生成的内容')
     return
@@ -170,11 +171,11 @@ async function onGenerate() {
   } finally {
     generating.value = false
   }
-}
+}, 500)
 
 /** 保存对草稿的编辑 */
-async function onSaveDraft() {
-  if (!draft.value) return
+const onSaveDraft = debounce(async () => {
+  if (savingDraft.value || !draft.value) return
   savingDraft.value = true
   try {
     await updateActivityDraft(id, draft.value)
@@ -182,11 +183,11 @@ async function onSaveDraft() {
   } finally {
     savingDraft.value = false
   }
-}
+}, 500)
 
 /** 确认发布：先保存编辑，再正式发布任务/问卷等内容 */
-async function onPublish() {
-  if (!draft.value) return
+const onPublish = debounce(async () => {
+  if (publishing.value || !draft.value) return
   try {
     await ElMessageBox.confirm(
       '确认发布该方案吗？确认后将正式发布任务分工、报名问卷、物料清单与定时提醒，且不可再修改草稿。',
@@ -208,7 +209,7 @@ async function onPublish() {
   } finally {
     publishing.value = false
   }
-}
+}, 500)
 
 /** 任务负责人变更时同步昵称 */
 function onAssigneeChange(task: TaskAssignDTO, userId: string) {
@@ -245,7 +246,8 @@ function addReminder() {
   draft.value?.reminders?.push({ title: '', content: '', triggerTime: '' })
 }
 
-async function onReview() {
+const onReview = debounce(async () => {
+  if (reviewing.value) return
   reviewing.value = true
   try {
     const content = await generateReview(id)
@@ -255,10 +257,11 @@ async function onReview() {
   } finally {
     reviewing.value = false
   }
-}
+}, 500)
 
 /** 确认分工：向被分配的成员发送站内消息 */
-async function onConfirmTasks() {
+const onConfirmTasks = debounce(async () => {
+  if (confirming.value) return
   try {
     await ElMessageBox.confirm(
       '确认当前任务分工吗？确认后将立即向各任务负责人发送消息通知。',
@@ -277,7 +280,7 @@ async function onConfirmTasks() {
   } finally {
     confirming.value = false
   }
-}
+}, 500)
 
 onMounted(loadAll)
 onUnmounted(stopPolling)
@@ -317,7 +320,7 @@ function openEventForm() {
   eventFormVisible.value = true
 }
 
-async function submitEvent() {
+const submitEvent = debounce(async () => {
   if (!eventForm.value.content.trim()) {
     ElMessage.warning('请填写事件内容')
     return
@@ -330,9 +333,9 @@ async function submitEvent() {
   } catch {
     // 错误已在拦截器处理
   }
-}
+}, 500)
 
-async function removeEvent(eid: string) {
+const removeEvent = debounce(async (eid: string) => {
   try {
     await ElMessageBox.confirm('确认删除该事件记录？', '提示', { type: 'warning' })
   } catch {
@@ -341,7 +344,7 @@ async function removeEvent(eid: string) {
   await deleteEventLog(id, eid)
   ElMessage.success('已删除')
   await loadEventLogs()
-}
+}, 500)
 
 const eventTypeTag = (t: number) => eventTypeOptions.find((o) => o.value === t)
 
