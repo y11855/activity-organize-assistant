@@ -4,17 +4,21 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
 import { login } from '@/api/auth'
+import { debounce } from '@/utils'
 
 const router = useRouter()
 const userStore = useUserStore()
 const form = ref({ username: '', password: '' })
 const loading = ref(false)
 
-async function onLogin() {
+const onLogin = debounce(async () => {
   if (!form.value.username || !form.value.password) {
     ElMessage.warning('请输入用户名和密码')
     return
   }
+
+  if (loading.value) return
+
   loading.value = true
   try {
     const res = await login(form.value)
@@ -32,7 +36,7 @@ async function onLogin() {
   } finally {
     loading.value = false
   }
-}
+}, 500)
 </script>
 
 <template>
