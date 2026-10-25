@@ -4,6 +4,22 @@ export interface UserInfo {
   username: string
   nickname: string
   roles: string[]
+  roleNames?: string[]
+  permissions: string[]
+}
+
+/** 统一分页查询参数 */
+export interface PageQuery {
+  page?: number
+  size?: number
+}
+
+/** 统一分页响应结构 */
+export interface PageVO<T> {
+  records: T[]
+  total: number
+  page: number
+  size: number
 }
 
 /** 活动创建请求 */
@@ -66,19 +82,6 @@ export interface TaskAssignDTO {
   assigneeId?: string
   assigneeName?: string
   deadline?: string
-}
-
-/** 任务实体 */
-export interface TaskAssignment {
-  id: string
-  activityid: string
-  title: string
-  description?: string
-  assigneeId?: string
-  assigneeName?: string
-  deadline?: string
-  status: number
-  createTime: string
 }
 
 /** 问卷 */
@@ -155,7 +158,7 @@ export interface UserSimpleVO {
   id: string
   username: string
   nickname: string
-  role: string
+  status?: number
 }
 
 /** 登录响应 */
@@ -164,29 +167,40 @@ export interface LoginVO {
   id: string
   username: string
   nickname: string
-  role: string
+  roles: string[]
+  roleNames: string[]
+  permissions: string[]
 }
 
-/** 提醒创建请求 */
-export interface ReminderCreateDTO {
-  activityId: string
-  title: string
-  content?: string
-  targetUserId?: string
-  targetUserName?: string
-  triggerTime: string
-}
-
-/** 提醒 */
-export interface ReminderVO {
+/** 后台用户列表项 */
+export interface UserAdminVO {
   id: string
-  activityId: string
-  title: string
-  content?: string
-  targetUserName?: string
-  triggerTime: string
+  username: string
+  nickname: string
   status: number
+  roleIds: string[]
+  roleCodes: string[]
+  roleNames: string[]
   createTime: string
+}
+
+/** 角色 */
+export interface RoleVO {
+  id: string
+  code: string
+  name: string
+  description?: string
+  builtin: number
+  permissionCodes: string[]
+  userCount: number
+}
+
+/** 权限项 */
+export interface PermissionVO {
+  code: string
+  name: string
+  groupName: string
+  sort: number
 }
 
 /** AI 生成内容配置（发起人勾选需要 AI 生成的内容项） */

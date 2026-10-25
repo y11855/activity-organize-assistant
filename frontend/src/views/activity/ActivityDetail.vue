@@ -133,9 +133,33 @@ async function loadDraft() {
     if (draft.value.options) {
       options.value = { ...options.value, ...draft.value.options }
     }
+    normalizeDraftAssignees()
   } finally {
     draftLoading.value = false
   }
+}
+
+/**
+ * 草稿任务负责人归一化：ID 统一为字符串；只有 ID 匹配不到时按姓名回填；
+ * 仍无法对应真实账号（如 AI 曾返回序号）则清空，让发起人重新选择，避免下拉框只显示数字。
+ */
+function normalizeDraftAssignees() {
+  if (!userOptions.value.length) return
+  draft.value?.tasks?.forEach((task) => {
+    if (task.assigneeId !== undefined && task.assigneeId !== null) {
+      task.assigneeId = String(task.assigneeId)
+    }
+    const matched =
+      (task.assigneeId && userOptions.value.find((u) => u.id === task.assigneeId)) ||
+      (task.assigneeName &&
+        userOptions.value.find((u) => (u.nickname || u.username) === task.assigneeName))
+    if (matched) {
+      task.assigneeId = String(matched.id)
+      task.assigneeName = matched.nickname || matched.username
+    } else {
+      task.assigneeId = undefined
+    }
+  })
 }
 
 async function loadUsers() {
@@ -212,8 +236,9 @@ const onPublish = debounce(async () => {
 }, 500)
 
 /** 任务负责人变更时同步昵称 */
-function onAssigneeChange(task: TaskAssignDTO, userId: string) {
-  const user = userOptions.value.find((u) => String(u.id) === String(userId))
+function onAssigneeChange(task: TaskAssignDTO, value: string | number) {
+  const userId = String(value)
+  const user = userOptions.value.find((u) => u.id === userId)
   task.assigneeId = userId
   task.assigneeName = user ? user.nickname || user.username : ''
 }
@@ -376,6 +401,8 @@ const reviewStruct = computed<ReviewStruct | null>(() => {
 
 // 事件记录在活动加载后一并拉取
 async function loadAll() {
+  // 先加载成员账号，草稿里的负责人才有下拉选项可映射（刷新页面后同样生效）
+  await loadUsers()
   await load()
   if (showOpsPanel.value) {
     loadEventLogs()
@@ -492,7 +519,7 @@ async function loadAll() {
                 :model-value="row.assigneeId"
                 placeholder="选择成员"
                 style="width: 100%"
-                @change="(v: string) => onAssigneeChange(row as TaskAssignDTO, v)"
+                @change="(v: string | number) => onAssigneeChange(row as TaskAssignDTO, v)"
               >
                 <el-option
                   v-for="u in userOptions"

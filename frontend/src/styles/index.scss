@@ -3,6 +3,18 @@
 :root {
   --app-header-height: 56px;
   --app-sidebar-width: 220px;
+
+  /* 低饱和主题色：雾霾蓝，降低整体视觉强度 */
+  --el-color-primary: #6d84a8;
+  --el-color-primary-light-3: #8b9dbb;
+  --el-color-primary-light-5: #a9b6cc;
+  --el-color-primary-light-7: #c9d1de;
+  --el-color-primary-light-8: #dce2eb;
+  --el-color-primary-light-9: #edf1f6;
+  --el-color-primary-dark-2: #5a6f8e;
+
+  /* 页面底色改为更柔和的浅灰 */
+  --el-bg-color-page: #f6f7f9;
 }
 
 html,

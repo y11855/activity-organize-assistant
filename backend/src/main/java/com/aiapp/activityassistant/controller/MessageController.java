@@ -1,8 +1,8 @@
 package com.aiapp.activityassistant.controller;
 
 import com.aiapp.activityassistant.common.result.Result;
-import com.aiapp.activityassistant.entity.Message;
 import com.aiapp.activityassistant.service.MessageService;
+import com.aiapp.activityassistant.vo.MessageVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class MessageController {
 
     @Operation(summary = "我的消息列表")
     @GetMapping("/mine")
-    public Result<List<Message>> listMine() {
+    public Result<List<MessageVO>> listMine() {
         return Result.success(messageService.listMine());
     }
 

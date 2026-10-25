@@ -23,7 +23,8 @@ public enum ResultCode {
     TOOL_CALL_ERROR(1002, "工具调用失败"),
     TOOL_RETRY_EXHAUSTED(1003, "工具调用重试次数已耗尽"),
     REMINDER_ALREADY_CANCELLED(1004, "提醒任务已取消"),
-    ACTIVITY_NOT_OWNED(1005, "只能操作自己创建的活动");
+    ACTIVITY_NOT_OWNED(1005, "只能操作自己创建的活动"),
+    FREQUENT_OPERATION(1006, "操作过于频繁，请稍后再试");
 
     private final Integer code;
     private final String message;

@@ -6,6 +6,7 @@ import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.entity.Message;
 import com.aiapp.activityassistant.mapper.MessageMapper;
 import com.aiapp.activityassistant.service.MessageService;
+import com.aiapp.activityassistant.vo.MessageVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -31,10 +32,20 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public List<Message> listMine() {
+    public List<MessageVO> listMine() {
         return list(new LambdaQueryWrapper<Message>()
                 .eq(Message::getUserId, UserContext.getCurrentUserId())
-                .orderByDesc(Message::getCreateTime));
+                .orderByDesc(Message::getCreateTime)).stream().map(m -> {
+                    MessageVO vo = new MessageVO();
+                    vo.setId(m.getId());
+                    vo.setUserId(m.getUserId());
+                    vo.setTitle(m.getTitle());
+                    vo.setContent(m.getContent());
+                    vo.setActivityId(m.getActivityId());
+                    vo.setReadStatus(m.getReadStatus());
+                    vo.setCreateTime(m.getCreateTime());
+                    return vo;
+                }).toList();
     }
 
     @Override

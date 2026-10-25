@@ -1,7 +1,9 @@
 package com.aiapp.activityassistant.service.impl;
 
 import com.aiapp.activityassistant.common.context.UserContext;
+import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
 import com.aiapp.activityassistant.entity.Activity;
@@ -11,6 +13,7 @@ import com.aiapp.activityassistant.service.ActivityService;
 import com.aiapp.activityassistant.service.TaskService;
 import com.aiapp.activityassistant.vo.MyTaskVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -87,27 +90,29 @@ public class TaskServiceImpl extends ServiceImpl<TaskAssignmentMapper, TaskAssig
     }
 
     @Override
-    public List<MyTaskVO> listMine(Integer status) {
+    public PageVO<MyTaskVO> listMine(Integer status, PageQuery query) {
         Long currentUserId = UserContext.getCurrentUserId();
-        LambdaQueryWrapper<TaskAssignment> wrapper = new LambdaQueryWrapper<TaskAssignment>()
-                .eq(TaskAssignment::getAssigneeId, currentUserId)
-                .eq(status != null, TaskAssignment::getStatus, status)
-                .orderByAsc(TaskAssignment::getStatus)
-                .orderByAsc(TaskAssignment::getDeadline);
-        List<TaskAssignment> tasks = list(wrapper);
+        Page<TaskAssignment> page = page(new Page<>(query.getPage(), query.getSize()),
+                new LambdaQueryWrapper<TaskAssignment>()
+                        .eq(TaskAssignment::getAssigneeId, currentUserId)
+                        .eq(status != null, TaskAssignment::getStatus, status)
+                        .orderByAsc(TaskAssignment::getStatus)
+                        .orderByAsc(TaskAssignment::getDeadline));
+        List<TaskAssignment> tasks = page.getRecords();
         if (tasks.isEmpty()) {
-            return new ArrayList<>();
+            return PageVO.of(new ArrayList<>(), page.getTotal(), page.getCurrent(), page.getSize());
         }
         // 批量补活动标题
         List<Long> activityIds = tasks.stream().map(TaskAssignment::getActivityId).distinct().toList();
         Map<Long, String> titleMap = activityService.listByIds(activityIds).stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a.getTitle() == null ? "" : a.getTitle()));
-        return tasks.stream().map(t -> {
+        List<MyTaskVO> records = tasks.stream().map(t -> {
             MyTaskVO vo = new MyTaskVO();
             BeanUtils.copyProperties(t, vo);
             vo.setActivityTitle(titleMap.getOrDefault(t.getActivityId(), ""));
             return vo;
         }).collect(Collectors.toList());
+        return PageVO.of(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override

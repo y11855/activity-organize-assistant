@@ -1,7 +1,6 @@
 export * from './activity'
 export * from './task'
 export * from './questionnaire'
-export * from './reminder'
 export * from './auth'
 export * from './user'
 export * from './file'

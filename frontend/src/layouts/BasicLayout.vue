@@ -3,19 +3,78 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
 import { listMyMessages, getUnreadCount, markMessageRead, markAllMessagesRead } from '@/api/message'
-import { logout as apiLogout } from '@/api/auth'
+import { logout as apiLogout, getCurrentUser } from '@/api/auth'
 import type { MessageVO } from '@/types'
-import { formatDate } from '@/utils'
+import { debounce, formatDate } from '@/utils'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const menus = computed(() =>
+interface MenuItem {
+  path: string
+  title: string
+  icon?: string
+}
+
+/** 一级菜单（无分组，按权限过滤） */
+const topMenus = computed(() => {
+  const items = router.getRoutes()
+    .flatMap((r) => r.children ?? [])
+    .filter((r) => !r.meta?.hidden && !r.meta?.group)
+    .filter((r) => {
+      const permission = r.meta?.permission as string | undefined
+      return !permission || userStore.hasPermission(permission)
+    })
+    .map<MenuItem>((r) => ({
+      path: '/' + r.path,
+      title: r.meta?.title as string,
+      icon: r.meta?.icon as string | undefined
+    }))
+  return items
+})
+
+/** 分组菜单（如「系统管理」），整组无可见项时不渲染 */
+const menuGroups = computed(() => {
+  const groups: { name: string; items: MenuItem[] }[] = []
   router.getRoutes()
     .flatMap((r) => r.children ?? [])
-    .filter((r) => !r.meta?.hidden)
-)
+    .filter((r) => !r.meta?.hidden && r.meta?.group)
+    .filter((r) => {
+      const permission = r.meta?.permission as string | undefined
+      return !permission || userStore.hasPermission(permission)
+    })
+    .forEach((r) => {
+      const name = r.meta?.group as string
+      let group = groups.find((g) => g.name === name)
+      if (!group) {
+        group = { name, items: [] }
+        groups.push(group)
+      }
+      group.items.push({
+        path: '/' + r.path,
+        title: r.meta?.title as string,
+        icon: r.meta?.icon as string | undefined
+      })
+    })
+  return groups
+})
+
+async function refreshCurrentUser() {
+  try {
+    const me = await getCurrentUser()
+    userStore.setUserInfo({
+      id: me.id,
+      username: me.username,
+      nickname: me.nickname,
+      roles: me.roles ?? [],
+      roleNames: me.roleNames ?? [],
+      permissions: me.permissions ?? []
+    })
+  } catch {
+    // 静默失败：权限以本地缓存为准，接口侧仍会兜底校验
+  }
+}
 
 // ===== 消息中心 =====
 const drawerVisible = ref(false)
@@ -42,7 +101,7 @@ async function openDrawer() {
   }
 }
 
-async function onReadMessage(msg: MessageVO) {
+async function doReadMessage(msg: MessageVO) {
   if (msg.readStatus === 0) {
     await markMessageRead(msg.id)
     msg.readStatus = 1
@@ -50,11 +109,14 @@ async function onReadMessage(msg: MessageVO) {
   }
 }
 
-async function onReadAll() {
+async function doReadAll() {
   await markAllMessagesRead()
   messages.value.forEach((m) => (m.readStatus = 1))
   refreshUnread()
 }
+
+const onReadMessage = debounce(doReadMessage, 300)
+const onReadAll = debounce(doReadAll, 300)
 
 function onLogout() {
   apiLogout().catch(() => {})
@@ -63,6 +125,8 @@ function onLogout() {
 }
 
 onMounted(() => {
+  // 进入布局时刷新一次权限，管理员调整授权后可即时生效
+  refreshCurrentUser()
   refreshUnread()
   pollTimer = setInterval(refreshUnread, 30000)
 })
@@ -79,16 +143,28 @@ onUnmounted(() => {
       <el-menu
         :default-active="route.path"
         router
-        background-color="#001529"
-        text-color="#bfcbd9"
-        active-text-color="#fff"
+        background-color="transparent"
+        text-color="#606266"
+        active-text-color="#4f6280"
       >
-        <el-menu-item v-for="m in menus" :key="m.path" :index="'/' + m.path">
-          <el-icon v-if="m.meta?.icon">
-            <component :is="m.meta.icon" />
+        <el-menu-item v-for="m in topMenus" :key="m.path" :index="m.path">
+          <el-icon v-if="m.icon">
+            <component :is="m.icon" />
           </el-icon>
-          <span>{{ m.meta?.title }}</span>
+          <span>{{ m.title }}</span>
         </el-menu-item>
+        <el-sub-menu v-for="g in menuGroups" :key="g.name" :index="g.name">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>{{ g.name }}</span>
+          </template>
+          <el-menu-item v-for="m in g.items" :key="m.path" :index="m.path">
+            <el-icon v-if="m.icon">
+              <component :is="m.icon" />
+            </el-icon>
+            <span>{{ m.title }}</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
     <el-container>
@@ -146,16 +222,41 @@ onUnmounted(() => {
   height: 100%;
 
   &__aside {
-    background-color: #001529;
-    color: #fff;
+    background-color: #fafbfc;
+    border-right: 1px solid #ebeef5;
   }
 
   &__logo {
     height: var(--app-header-height);
     line-height: var(--app-header-height);
-    text-align: center;
+    padding-left: 20px;
     font-size: 16px;
-    border-bottom: 1px solid #1f1f1f;
+    font-weight: 600;
+    color: #303133;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  :deep(.el-menu) {
+    border-right: none;
+  }
+
+  :deep(.el-menu-item),
+  :deep(.el-sub-menu__title) {
+    height: 46px;
+    line-height: 46px;
+    margin: 4px 8px;
+    border-radius: 6px;
+  }
+
+  :deep(.el-menu-item.is-active) {
+    background-color: #edf1f6;
+    font-weight: 500;
+  }
+
+  :deep(.el-menu-item:hover),
+  :deep(.el-sub-menu__title:hover) {
+    background-color: #f2f4f7;
   }
 
   &__header {
@@ -165,7 +266,8 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #ebeef5;
+    color: #303133;
   }
 
   &__right {
@@ -207,11 +309,11 @@ onUnmounted(() => {
     background: #f5f7fa;
 
     &--unread {
-      background: #ecf5ff;
+      background: #eef2f7;
     }
 
     &:hover {
-      background: #e6f0ff;
+      background: #e8edf4;
     }
   }
 

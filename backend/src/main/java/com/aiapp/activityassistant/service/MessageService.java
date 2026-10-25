@@ -1,6 +1,7 @@
 package com.aiapp.activityassistant.service;
 
 import com.aiapp.activityassistant.entity.Message;
+import com.aiapp.activityassistant.vo.MessageVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public interface MessageService extends IService<Message> {
     /**
      * 我的消息列表（新到旧）
      */
-    List<Message> listMine();
+    List<MessageVO> listMine();
 
     /**
      * 我的未读消息数

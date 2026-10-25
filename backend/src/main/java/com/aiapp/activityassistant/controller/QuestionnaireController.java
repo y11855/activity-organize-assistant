@@ -1,5 +1,8 @@
 package com.aiapp.activityassistant.controller;
 
+import com.aiapp.activityassistant.common.annotation.Idempotent;
+import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.QuestionnaireSaveDTO;
 import com.aiapp.activityassistant.dto.ResponseSubmitDTO;
@@ -14,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,20 +38,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/questionnaires")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('questionnaire:view')")
 public class QuestionnaireController {
 
     private final QuestionnaireService questionnaireService;
 
     @Operation(summary = "为活动生成问卷")
     @PostMapping("/generate")
+    @Idempotent(prefix = "questionnaire:generate", ttl = 5)
     public Result<Long> generate(@RequestParam Long activityId) {
         return Result.success(questionnaireService.generate(activityId));
     }
 
-    @Operation(summary = "获取活动问卷详情")
+    @Operation(summary = "按活动查询问卷列表")
     @GetMapping
-    public Result<QuestionnaireVO> detailByActivity(@RequestParam Long activityId) {
-        return Result.success(questionnaireService.detailByActivity(activityId));
+    public Result<List<QuestionnaireVO>> listByActivity(@RequestParam Long activityId) {
+        return Result.success(questionnaireService.listByActivity(activityId));
     }
 
     @Operation(summary = "发布问卷")
@@ -64,12 +70,6 @@ public class QuestionnaireController {
         return Result.success();
     }
 
-    @Operation(summary = "获取活动问卷列表")
-    @GetMapping("/list")
-    public Result<List<QuestionnaireVO>> listByActivity(@RequestParam Long activityId) {
-        return Result.success(questionnaireService.listByActivity(activityId));
-    }
-
     @Operation(summary = "编辑问卷（含封面）")
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody QuestionnaireSaveDTO dto) {
@@ -77,10 +77,10 @@ public class QuestionnaireController {
         return Result.success();
     }
 
-    @Operation(summary = "我的问卷列表（当前用户所有活动下）")
+    @Operation(summary = "分页获取我的问卷列表（当前用户所有活动下）")
     @GetMapping("/mine")
-    public Result<List<QuestionnaireVO>> listMine() {
-        return Result.success(questionnaireService.listMine());
+    public Result<PageVO<QuestionnaireVO>> listMine(PageQuery query) {
+        return Result.success(questionnaireService.listMine(query));
     }
 
     @Operation(summary = "按 ID 获取问卷详情（填写页）")
@@ -91,6 +91,7 @@ public class QuestionnaireController {
 
     @Operation(summary = "提交答卷")
     @PostMapping("/{id}/responses")
+    @Idempotent(prefix = "questionnaire:submit", ttl = 3)
     public Result<Void> submitResponse(@PathVariable Long id, @Valid @RequestBody ResponseSubmitDTO dto) {
         questionnaireService.submitResponse(id, dto);
         return Result.success();

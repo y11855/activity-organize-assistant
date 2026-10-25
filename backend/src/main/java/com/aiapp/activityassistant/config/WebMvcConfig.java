@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final IdempotentInterceptor idempotentInterceptor;
 
     /** 上传文件存储目录（Tomcat 部署时由环境变量 UPLOAD_DIR 指向绝对路径） */
     @Value("${app.upload-dir:uploads}")
@@ -29,6 +30,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/auth/login",
+                        "/auth/register",
                         "/auth/public-key",
                         "/uploads/**",
                         // Knife4j / OpenAPI 文档
@@ -37,6 +39,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         // Druid 监控页
                         "/druid/**",
                         "/error");
+        // 幂等拦截放在认证之后，确保能取到当前用户 ID
+        registry.addInterceptor(idempotentInterceptor)
+                .addPathPatterns("/**");
     }
 
     @Override

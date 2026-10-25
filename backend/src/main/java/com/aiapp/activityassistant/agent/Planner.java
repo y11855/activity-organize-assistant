@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +72,11 @@ public class Planner {
             userPrompt.append("\n预计参与人数：").append(activity.getExpectedCount());
         }
         if (!memberMap.isEmpty()) {
-            userPrompt.append("\n成员名单（id:昵称）：");
-            memberMap.forEach((id, name) -> userPrompt.append(id).append(":").append(name).append("，"));
+            userPrompt.append("\n成员名单（任务只能分配给以下人员，共 ").append(memberMap.size()).append(" 人）：");
+            int index = 1;
+            for (String name : memberMap.values()) {
+                userPrompt.append(index++).append(".").append(name).append("；");
+            }
             userPrompt.setLength(userPrompt.length() - 1);
         }
 
@@ -115,7 +119,7 @@ public class Planner {
         sb.append("你是活动策划助手。根据用户的活动描述，输出 JSON，包含：\n")
                 .append("- planContent: 策划文案（包含活动流程与任务完成计划）\n");
         if (options.wantTasks()) {
-            sb.append("- tasks: 任务分工数组 [{title, description, assigneeId, assigneeName, deadlineOffsetHours}]\n");
+            sb.append("- tasks: 任务分工数组 [{title, description, assigneeIndex, assigneeName, deadlineOffsetHours}]\n");
         }
         if (options.wantMaterials()) {
             sb.append("- materials: 物料清单数组 [{name, quantity, unit, unitPrice, remark}]\n");
@@ -126,7 +130,8 @@ public class Planner {
         sb.append("要求：\n");
         if (options.wantTasks()) {
             if (!memberMap.isEmpty()) {
-                sb.append("- tasks 必须且只能在成员名单间分配，assigneeId 与 assigneeName 必须来自名单，尽量均衡分摊\n");
+                sb.append(
+                        "- tasks 必须且只能在成员名单间分配，assigneeIndex 填成员名单中的序号（1、2、3…），assigneeName 必须与序号对应的姓名完全一致，不得编造名单外的人员，尽量均衡分摊\n");
             }
             sb.append("- deadlineOffsetHours 为任务截止距当前的小时数（整数，24~168 之间）\n");
         }
@@ -190,13 +195,21 @@ public class Planner {
     }
 
     /**
-     * 解析任务数组：映射负责人 ID，并把 deadlineOffsetHours 换算为绝对截止时间
+     * 解析任务数组：把 AI 返回的成员序号/姓名映射为活动成员的真实 ID，并把 deadlineOffsetHours 换算为绝对截止时间。
+     *
+     * <p>
+     * AI 无法准确回写雪花 ID，因此提示词只给序号；这里按「序号 → 姓名 → 名单内均衡兜底」的顺序解析，
+     * 保证任务一定落在发起人勾选的成员身上，不会出现名单外或数字 ID。
+     * </p>
      */
     private List<TaskAssignDTO> parseTasks(JsonNode tasksNode, Map<Long, String> memberMap) {
         List<TaskAssignDTO> tasks = new ArrayList<>();
+        List<Long> memberIds = new ArrayList<>(memberMap.keySet());
         // 昵称 → ID 反查表，兜底 AI 只返回名字的情况
         Map<String, Long> nameToId = new HashMap<>();
         memberMap.forEach((id, name) -> nameToId.put(name, id));
+        // 名单内均衡分摊的游标（AI 未给出可识别负责人时使用）
+        int cursor = 0;
 
         if (tasksNode.isArray()) {
             for (JsonNode t : tasksNode) {
@@ -204,16 +217,19 @@ public class Planner {
                 task.setTitle(t.path("title").asText(""));
                 task.setDescription(t.path("description").asText(""));
 
-                long assigneeId = t.path("assigneeId").asLong(0);
-                String assigneeName = t.path("assigneeName").asText("");
-                if (assigneeId > 0) {
+                String assigneeName = t.path("assigneeName").asText("").trim();
+                long indexOrId = t.path("assigneeIndex").asLong(0);
+                if (indexOrId <= 0) {
+                    indexOrId = t.path("assigneeId").asLong(0);
+                }
+                Long assigneeId = resolveAssignee(indexOrId, assigneeName, memberIds, memberMap, nameToId);
+                if (assigneeId == null && !memberIds.isEmpty()) {
+                    // 兜底：在名单内轮询分摊，避免任务无人负责
+                    assigneeId = memberIds.get(cursor++ % memberIds.size());
+                }
+                if (assigneeId != null) {
                     task.setAssigneeId(assigneeId);
-                    // 以名单中的昵称为准
-                    task.setAssigneeName(memberMap.getOrDefault(assigneeId,
-                            assigneeName.isEmpty() ? "待定" : assigneeName));
-                } else if (!assigneeName.isEmpty() && nameToId.containsKey(assigneeName)) {
-                    task.setAssigneeId(nameToId.get(assigneeName));
-                    task.setAssigneeName(assigneeName);
+                    task.setAssigneeName(memberMap.get(assigneeId));
                 } else {
                     task.setAssigneeName(assigneeName.isEmpty() ? "待定" : assigneeName);
                 }
@@ -226,6 +242,34 @@ public class Planner {
             }
         }
         return tasks;
+    }
+
+    /**
+     * 解析单个任务的负责人：真实成员 ID → 成员序号 → 姓名精确匹配 → 姓名模糊匹配
+     */
+    private Long resolveAssignee(long indexOrId, String assigneeName, List<Long> memberIds,
+            Map<Long, String> memberMap, Map<String, Long> nameToId) {
+        if (indexOrId > 0) {
+            if (memberMap.containsKey(indexOrId)) {
+                return indexOrId;
+            }
+            if (indexOrId <= memberIds.size()) {
+                return memberIds.get((int) indexOrId - 1);
+            }
+        }
+        if (assigneeName.isEmpty()) {
+            return null;
+        }
+        Long exact = nameToId.get(assigneeName);
+        if (exact != null) {
+            return exact;
+        }
+        for (Map.Entry<String, Long> entry : nameToId.entrySet()) {
+            if (entry.getKey().contains(assigneeName) || assigneeName.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     /**
@@ -268,10 +312,10 @@ public class Planner {
     }
 
     /**
-     * 解析活动成员ID JSON → {id: 昵称}
+     * 解析活动成员ID JSON → {id: 昵称}，顺序与发起人勾选顺序一致（供提示词序号与解析对齐）
      */
     private Map<Long, String> resolveMembers(String memberIdsJson) {
-        Map<Long, String> map = new HashMap<>();
+        Map<Long, String> map = new LinkedHashMap<>();
         if (memberIdsJson == null || memberIdsJson.isBlank()) {
             return map;
         }
@@ -280,8 +324,15 @@ public class Planner {
             if (ids.isEmpty()) {
                 return map;
             }
+            Map<Long, User> userMap = new HashMap<>();
             for (User u : userService.listByIds(ids)) {
-                map.put(u.getId(), u.getNickname() == null ? u.getUsername() : u.getNickname());
+                userMap.put(u.getId(), u);
+            }
+            for (Long id : ids) {
+                User u = userMap.get(id);
+                if (u != null) {
+                    map.put(id, u.getNickname() == null ? u.getUsername() : u.getNickname());
+                }
             }
         } catch (Exception e) {
             log.warn("[规划器] 解析成员名单失败: {}", memberIdsJson);

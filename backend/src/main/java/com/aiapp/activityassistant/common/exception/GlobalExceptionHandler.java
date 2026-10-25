@@ -5,6 +5,7 @@ import com.aiapp.activityassistant.common.result.ResultCode;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public Result<Void> handleConstraintViolationException(ConstraintViolationException e) {
         return Result.fail(ResultCode.PARAM_ERROR.getCode(), e.getMessage());
+    }
+
+    /**
+     * 方法级权限校验失败（@PreAuthorize 拒绝），返回 403 业务码而非 500
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public Result<Void> handleAccessDenied(AccessDeniedException e) {
+        log.warn("权限不足: {}", e.getMessage());
+        return Result.fail(ResultCode.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)

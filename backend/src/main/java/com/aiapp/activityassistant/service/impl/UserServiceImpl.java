@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.service.impl;
 import com.aiapp.activityassistant.entity.User;
 import com.aiapp.activityassistant.mapper.UserMapper;
 import com.aiapp.activityassistant.service.UserService;
+import com.aiapp.activityassistant.vo.UserSimpleVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
@@ -23,9 +24,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<User> listAll() {
-        List<User> list = list(new LambdaQueryWrapper<User>().orderByAsc(User::getId));
-        list.forEach(u -> u.setPassword(null));
-        return list;
+    public List<UserSimpleVO> listAll() {
+        // 仅返回启用账号，禁用账号不再出现在成员选择器
+        return list(new LambdaQueryWrapper<User>()
+                .eq(User::getStatus, 1)
+                .orderByAsc(User::getId)).stream().map(u -> {
+                    UserSimpleVO vo = new UserSimpleVO();
+                    vo.setId(u.getId());
+                    vo.setUsername(u.getUsername());
+                    vo.setNickname(u.getNickname());
+                    vo.setStatus(u.getStatus());
+                    return vo;
+                }).toList();
     }
 }

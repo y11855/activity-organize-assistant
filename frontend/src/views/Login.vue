@@ -32,13 +32,7 @@ const onLogin = debounce(async () => {
   }
   try {
     const res = await login({ username: form.value.username, password: encryptedPassword })
-    userStore.setToken(res.token)
-    userStore.setUserInfo({
-      id: res.id,
-      username: res.username,
-      nickname: res.nickname,
-      roles: res.role ? [res.role] : []
-    })
+    userStore.setLoginInfo(res)
     ElMessage.success(`欢迎，${res.nickname || res.username}`)
     router.push('/activities')
   } catch {
@@ -51,9 +45,10 @@ const onLogin = debounce(async () => {
 
 <template>
   <div class="login">
-    <el-card class="login__card">
-      <h2>活动管家</h2>
-      <el-form :model="form" label-width="80px" @keyup.enter="onLogin">
+    <div class="login__panel">
+      <h1 class="login__title">活动管家</h1>
+      <p class="login__subtitle">社团活动组织与协作</p>
+      <el-form :model="form" label-width="72px" @keyup.enter="onLogin">
         <el-form-item label="用户名">
           <el-input v-model="form.username" placeholder="请输入用户名" />
         </el-form-item>
@@ -61,11 +56,15 @@ const onLogin = debounce(async () => {
           <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="loading" @click="onLogin">登录</el-button>
+          <el-button type="primary" class="login__submit" :loading="loading" @click="onLogin">
+            登录
+          </el-button>
         </el-form-item>
       </el-form>
-      <div class="login__tip">测试账号：admin / 123456（成员：zhangsan、lisi、wangwu、zhaoliu / 123456）</div>
-    </el-card>
+      <div class="login__extra">
+        <el-button link type="primary" @click="router.push('/register')">没有账号？注册</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -75,16 +74,41 @@ const onLogin = debounce(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f6f7f9;
 
-  &__card {
-    width: 400px;
+  &__panel {
+    width: 360px;
+    padding: 36px 32px 24px;
+    background: #fff;
+    border: 1px solid #ebeef5;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(31, 45, 61, 0.05);
   }
 
-  &__tip {
-    color: #999;
-    font-size: 12px;
+  &__title {
+    margin: 0;
     text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: #303133;
+    letter-spacing: 1px;
+  }
+
+  &__subtitle {
+    margin: 8px 0 28px;
+    text-align: center;
+    font-size: 13px;
+    color: #909399;
+  }
+
+  &__submit {
+    width: 100%;
+  }
+
+  &__extra {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
   }
 }
 </style>

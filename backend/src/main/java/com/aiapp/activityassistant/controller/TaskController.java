@@ -1,13 +1,19 @@
 package com.aiapp.activityassistant.controller;
 
+import com.aiapp.activityassistant.common.annotation.Idempotent;
+import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
-import com.aiapp.activityassistant.entity.TaskAssignment;
 import com.aiapp.activityassistant.service.TaskService;
 import com.aiapp.activityassistant.vo.MyTaskVO;
+import com.aiapp.activityassistant.vo.TaskVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,18 +32,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/tasks")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('task:view')")
 public class TaskController {
 
     private final TaskService taskService;
 
     @Operation(summary = "派发任务")
     @PostMapping
-    public Result<Long> assign(@RequestBody TaskAssignDTO dto) {
+    @Idempotent(prefix = "task:assign", ttl = 3)
+    public Result<Long> assign(@Valid @RequestBody TaskAssignDTO dto) {
         return Result.success(taskService.assign(dto));
     }
 
     @Operation(summary = "批量派发任务")
     @PostMapping("/batch")
+    @Idempotent(prefix = "task:batch-assign", ttl = 3)
     public Result<Void> batchAssign(@RequestParam Long activityId, @RequestBody List<TaskAssignDTO> tasks) {
         taskService.batchAssign(activityId, tasks);
         return Result.success();
@@ -52,13 +61,18 @@ public class TaskController {
 
     @Operation(summary = "获取活动下的任务列表")
     @GetMapping
-    public Result<List<TaskAssignment>> listByActivity(@RequestParam Long activityId) {
-        return Result.success(taskService.listByActivity(activityId));
+    public Result<List<TaskVO>> listByActivity(@RequestParam Long activityId) {
+        List<TaskVO> result = taskService.listByActivity(activityId).stream().map(task -> {
+            TaskVO vo = new TaskVO();
+            BeanUtils.copyProperties(task, vo);
+            return vo;
+        }).toList();
+        return Result.success(result);
     }
 
-    @Operation(summary = "我的任务（仅分配给自己的，支持状态过滤）")
+    @Operation(summary = "分页获取我的任务（仅分配给自己的，支持状态过滤）")
     @GetMapping("/mine")
-    public Result<List<MyTaskVO>> listMine(@RequestParam(required = false) Integer status) {
-        return Result.success(taskService.listMine(status));
+    public Result<PageVO<MyTaskVO>> listMine(@RequestParam(required = false) Integer status, PageQuery query) {
+        return Result.success(taskService.listMine(status, query));
     }
 }

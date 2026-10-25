@@ -3,9 +3,12 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listMyTasks, completeTask } from '@/api/task'
 import type { MyTaskVO } from '@/types'
-import { formatDate } from '@/utils'
+import { debounce, formatDate } from '@/utils'
 
 const list = ref<MyTaskVO[]>([])
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
 const loading = ref(false)
 const statusFilter = ref<number | ''>('')
 const sortOrder = ref<'asc' | 'desc'>('asc')
@@ -33,22 +36,32 @@ const sortedList = computed(() => {
 async function loadList() {
   loading.value = true
   try {
-    list.value = await listMyTasks(statusFilter.value === '' ? undefined : statusFilter.value)
+    const status = statusFilter.value === '' ? undefined : statusFilter.value
+    const res = await listMyTasks(status, { page: page.value, size: size.value })
+    list.value = res.records
+    total.value = res.total
   } finally {
     loading.value = false
   }
 }
 
 function onStatusChange() {
+  page.value = 1
   loadList()
 }
 
-async function onComplete(row: MyTaskVO) {
-  await ElMessageBox.confirm(`确定将任务「${row.title}」标记为已完成吗？`, '提示', { type: 'info' })
+async function doComplete(row: MyTaskVO) {
+  try {
+    await ElMessageBox.confirm(`确定将任务「${row.title}」标记为已完成吗？`, '提示', { type: 'info' })
+  } catch {
+    return
+  }
   await completeTask(row.id)
   ElMessage.success('任务已标记完成')
   loadList()
 }
+
+const onComplete = debounce(doComplete, 300)
 
 onMounted(loadList)
 </script>
@@ -115,10 +128,27 @@ onMounted(loadList)
         <el-empty description="暂无分配给你的任务" />
       </template>
     </el-table>
+
+    <div v-if="total > 0" class="list-pagination">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="size"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @change="loadList"
+      />
+    </div>
   </el-card>
 </template>
 
 <style scoped lang="scss">
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 .task {
   &__header {
     display: flex;

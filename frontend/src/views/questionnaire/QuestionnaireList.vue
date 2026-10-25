@@ -14,6 +14,9 @@ import { debounce, formatDate } from '@/utils'
 
 const router = useRouter()
 const list = ref<QuestionnaireVO[]>([])
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
 const loading = ref(false)
 
 const dialogVisible = ref(false)
@@ -27,7 +30,9 @@ const statusType: Record<number, 'info' | 'success' | 'danger'> = { 0: 'info', 1
 async function loadList() {
   loading.value = true
   try {
-    list.value = await listMyQuestionnaires()
+    const res = await listMyQuestionnaires({ page: page.value, size: size.value })
+    list.value = res.records
+    total.value = res.total
   } finally {
     loading.value = false
   }
@@ -82,7 +87,7 @@ async function persistCover() {
   loadList()
 }
 
-async function onRemoveCover() {
+const onRemoveCover = debounce(async () => {
   const previous = form.value.coverImage
   form.value.coverImage = ''
   try {
@@ -91,7 +96,7 @@ async function onRemoveCover() {
   } catch {
     form.value.coverImage = previous
   }
-}
+}, 300)
 
 const onSave = debounce(async () => {
   if (saving.value) return
@@ -165,6 +170,17 @@ onMounted(loadList)
       </el-card>
     </div>
 
+    <div v-if="total > 0" class="list-pagination">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="size"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @change="loadList"
+      />
+    </div>
+
     <el-dialog v-model="dialogVisible" title="编辑问卷" width="520px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="问卷标题" required>
@@ -217,6 +233,12 @@ onMounted(loadList)
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+}
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .qn-card {

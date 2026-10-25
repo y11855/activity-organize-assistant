@@ -11,6 +11,9 @@ import { debounce, formatDate } from '@/utils'
 const router = useRouter()
 const userStore = useUserStore()
 const list = ref<ActivityVO[]>([])
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
 const dialogVisible = ref(false)
 const loading = ref(false)
 const creating = ref(false)
@@ -50,7 +53,9 @@ function statusTagType(status: number): 'success' | 'danger' | 'warning' | 'info
 async function loadList() {
   loading.value = true
   try {
-    list.value = await listMyActivities()
+    const res = await listMyActivities({ page: page.value, size: size.value })
+    list.value = res.records
+    total.value = res.total
   } finally {
     loading.value = false
   }
@@ -121,7 +126,7 @@ const onConfirmCancel = debounce(async () => {
 }, 500)
 
 /** 删除已取消活动的记录，含级联清除任务/物料/问卷及答案/提醒/消息，不可恢复 */
-async function onDeleteRecord(id: string) {
+async function doDeleteRecord(id: string) {
   try {
     await ElMessageBox.confirm(
       '确定删除该活动记录吗？将一并删除其任务、物料、问卷及答案、提醒、消息，且不可恢复。',
@@ -135,6 +140,8 @@ async function onDeleteRecord(id: string) {
   ElMessage.success('活动记录已删除')
   loadList()
 }
+
+const onDeleteRecord = debounce(doDeleteRecord, 300)
 
 onMounted(loadList)
 </script>
@@ -180,6 +187,17 @@ onMounted(loadList)
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="list-pagination">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="size"
+        :total="total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @change="loadList"
+      />
+    </div>
   </el-card>
 
   <el-dialog v-model="dialogVisible" title="发起活动" width="520px">
@@ -244,6 +262,12 @@ onMounted(loadList)
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .cancel-tip {

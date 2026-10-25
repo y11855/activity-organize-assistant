@@ -2,8 +2,10 @@ package com.aiapp.activityassistant.service.impl;
 
 import com.aiapp.activityassistant.agent.ActivityAgent;
 import com.aiapp.activityassistant.common.context.UserContext;
+import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
 import com.aiapp.activityassistant.common.redis.RedisService;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.common.utils.IdempotentKeyGenerator;
 import com.aiapp.activityassistant.dto.ActivityGenerateDTO;
@@ -25,12 +27,12 @@ import com.aiapp.activityassistant.service.ActivityService;
 import com.aiapp.activityassistant.service.MessageService;
 import com.aiapp.activityassistant.service.TaskService;
 import com.aiapp.activityassistant.service.UserService;
-import com.aiapp.activityassistant.vo.ActivityBreakdownNodeVO;
 import com.aiapp.activityassistant.vo.ActivityDraftVO;
 import com.aiapp.activityassistant.vo.ActivityVO;
 import com.aiapp.activityassistant.vo.MaterialVO;
 import com.aiapp.activityassistant.vo.TaskVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -42,8 +44,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -370,16 +370,18 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     }
 
     @Override
-    public List<ActivityVO> listMine() {
+    public PageVO<ActivityVO> listMine(PageQuery query) {
         Long currentUserId = UserContext.getCurrentUserId();
-        List<Activity> list = list(new LambdaQueryWrapper<Activity>()
-                .eq(Activity::getCreatorId, currentUserId)
-                .orderByDesc(Activity::getCreateTime));
-        return list.stream().map(a -> {
+        Page<Activity> page = page(new Page<>(query.getPage(), query.getSize()),
+                new LambdaQueryWrapper<Activity>()
+                        .eq(Activity::getCreatorId, currentUserId)
+                        .orderByDesc(Activity::getCreateTime));
+        List<ActivityVO> records = page.getRecords().stream().map(a -> {
             ActivityVO vo = new ActivityVO();
             BeanUtils.copyProperties(a, vo);
             return vo;
         }).collect(Collectors.toList());
+        return PageVO.of(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override
@@ -406,101 +408,6 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     @Override
     public void evictDetailCache(Long activityId) {
         redisService.delete(DETAIL_CACHE_KEY + activityId);
-    }
-
-    @Override
-    public List<ActivityBreakdownNodeVO> breakdownTree() {
-        Long currentUserId = UserContext.getCurrentUserId();
-        // 1. 查出当前用户的所有活动
-        List<Activity> activities = list(new LambdaQueryWrapper<Activity>()
-                .eq(Activity::getCreatorId, currentUserId)
-                .orderByDesc(Activity::getCreateTime));
-        if (activities.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Long> activityIds = activities.stream().map(Activity::getId).toList();
-
-        // 2. 一次性查出所有活动的子资源，按 activityId 分组
-        Map<Long, List<TaskAssignment>> taskMap = groupByActivity(
-                taskService.list(new LambdaQueryWrapper<TaskAssignment>()
-                        .in(TaskAssignment::getActivityId, activityIds)));
-        Map<Long, List<Material>> materialMap = groupByActivity(
-                materialMapper.selectList(new LambdaQueryWrapper<Material>()
-                        .in(Material::getActivityId, activityIds)));
-        Map<Long, List<Questionnaire>> qnMap = groupByActivity(
-                questionnaireMapper.selectList(new LambdaQueryWrapper<Questionnaire>()
-                        .in(Questionnaire::getActivityId, activityIds)));
-        Map<Long, List<Reminder>> reminderMap = groupByActivity(
-                reminderMapper.selectList(new LambdaQueryWrapper<Reminder>()
-                        .in(Reminder::getActivityId, activityIds)));
-
-        // 3. 组装树
-        List<ActivityBreakdownNodeVO> roots = new ArrayList<>();
-        for (Activity a : activities) {
-            ActivityBreakdownNodeVO actNode = new ActivityBreakdownNodeVO();
-            actNode.setId("act-" + a.getId());
-            actNode.setName(a.getTitle());
-            actNode.setType("activity");
-            actNode.setStatus(a.getStatus());
-            Map<String, Object> actMeta = new LinkedHashMap<>();
-            actMeta.put("描述", a.getDescription() == null ? "—" : a.getDescription());
-            actMeta.put("状态", activityStatusLabel(a.getStatus()));
-            actMeta.put("开始时间", a.getStartTime() == null ? "—" : a.getStartTime().toString());
-            actMeta.put("结束时间", a.getEndTime() == null ? "—" : a.getEndTime().toString());
-            actNode.setMeta(actMeta);
-
-            List<ActivityBreakdownNodeVO> children = new ArrayList<>();
-            children.add(buildCategory("任务分工", "task", taskMap.get(a.getId()),
-                    t -> t.getTitle() + (t.getAssigneeName() == null ? "" : " · " + t.getAssigneeName()),
-                    t -> {
-                        Map<String, Object> m = new LinkedHashMap<>();
-                        m.put("标题", t.getTitle());
-                        m.put("负责人", t.getAssigneeName() == null ? "—" : t.getAssigneeName());
-                        m.put("截止时间", t.getDeadline() == null ? "—" : t.getDeadline().toString());
-                        m.put("状态", taskStatusLabel(t.getStatus()));
-                        m.put("描述", t.getDescription() == null ? "—" : t.getDescription());
-                        return m;
-                    },
-                    TaskAssignment::getStatus));
-            children.add(buildCategory("物料清单", "material", materialMap.get(a.getId()),
-                    m -> m.getName() + " · " + m.getQuantity() + (m.getUnit() == null ? "" : m.getUnit()),
-                    m -> {
-                        Map<String, Object> meta = new LinkedHashMap<>();
-                        meta.put("名称", m.getName());
-                        meta.put("数量", m.getQuantity());
-                        meta.put("单位", m.getUnit() == null ? "—" : m.getUnit());
-                        meta.put("单价", m.getUnitPrice() == null ? "—" : m.getUnitPrice().toPlainString());
-                        meta.put("备注", m.getRemark() == null ? "—" : m.getRemark());
-                        return meta;
-                    },
-                    m -> null));
-            children.add(buildCategory("报名问卷", "questionnaire", qnMap.get(a.getId()),
-                    q -> q.getTitle(),
-                    q -> {
-                        Map<String, Object> meta = new LinkedHashMap<>();
-                        meta.put("标题", q.getTitle());
-                        meta.put("描述", q.getDescription() == null ? "—" : q.getDescription());
-                        meta.put("状态", questionnaireStatusLabel(q.getStatus()));
-                        return meta;
-                    },
-                    Questionnaire::getStatus));
-            children.add(buildCategory("定时提醒", "reminder", reminderMap.get(a.getId()),
-                    r -> r.getTitle() + (r.getTriggerTime() == null ? "" : " · " + r.getTriggerTime()),
-                    r -> {
-                        Map<String, Object> meta = new LinkedHashMap<>();
-                        meta.put("标题", r.getTitle());
-                        meta.put("内容", r.getContent() == null ? "—" : r.getContent());
-                        meta.put("提醒对象", r.getTargetUserName() == null ? "—" : r.getTargetUserName());
-                        meta.put("触发时间", r.getTriggerTime() == null ? "—" : r.getTriggerTime().toString());
-                        meta.put("状态", reminderStatusLabel(r.getStatus()));
-                        return meta;
-                    },
-                    Reminder::getStatus));
-            actNode.setChildren(children);
-            roots.add(actNode);
-        }
-        return roots;
     }
 
     @Override
@@ -565,54 +472,6 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         }
     }
 
-    /** 把列表按 activityId 分组 */
-    private <T> Map<Long, List<T>> groupByActivity(List<T> list) {
-        if (list == null)
-            return new HashMap<>();
-        return list.stream().collect(Collectors.groupingBy(item -> {
-            try {
-                return (Long) item.getClass().getMethod("getActivityId").invoke(item);
-            } catch (Exception e) {
-                return 0L;
-            }
-        }));
-    }
-
-    /** 构建一个分类节点（任务分工/物料/问卷/提醒）及其子项 */
-    private <T> ActivityBreakdownNodeVO buildCategory(String name, String type,
-            List<T> items,
-            java.util.function.Function<T, String> labelFn,
-            java.util.function.Function<T, Map<String, Object>> metaFn,
-            java.util.function.Function<T, Integer> statusFn) {
-        ActivityBreakdownNodeVO cat = new ActivityBreakdownNodeVO();
-        cat.setId("cat-" + type);
-        cat.setName(name + (items == null ? " (0)" : " (" + items.size() + ")"));
-        cat.setType("category");
-        cat.setMeta(new LinkedHashMap<>());
-        List<ActivityBreakdownNodeVO> kids = new ArrayList<>();
-        if (items != null) {
-            for (T item : items) {
-                ActivityBreakdownNodeVO kid = new ActivityBreakdownNodeVO();
-                kid.setId(type + "-" + extractId(item));
-                kid.setName(labelFn.apply(item));
-                kid.setType(type);
-                kid.setStatus(statusFn.apply(item));
-                kid.setMeta(metaFn.apply(item));
-                kids.add(kid);
-            }
-        }
-        cat.setChildren(kids);
-        return cat;
-    }
-
-    private Long extractId(Object item) {
-        try {
-            return (Long) item.getClass().getMethod("getId").invoke(item);
-        } catch (Exception e) {
-            return 0L;
-        }
-    }
-
     private String activityStatusLabel(Integer s) {
         if (s == null)
             return "未知";
@@ -623,41 +482,6 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             case 3 -> "已完成";
             case 4 -> "已取消";
             case 5 -> "待确认";
-            default -> "未知";
-        };
-    }
-
-    private String taskStatusLabel(Integer s) {
-        if (s == null)
-            return "未知";
-        return switch (s) {
-            case 0 -> "待开始";
-            case 1 -> "进行中";
-            case 2 -> "已完成";
-            case 3 -> "已逾期";
-            default -> "未知";
-        };
-    }
-
-    private String questionnaireStatusLabel(Integer s) {
-        if (s == null)
-            return "未知";
-        return switch (s) {
-            case 0 -> "未发布";
-            case 1 -> "已发布";
-            case 2 -> "已截止";
-            default -> "未知";
-        };
-    }
-
-    private String reminderStatusLabel(Integer s) {
-        if (s == null)
-            return "未知";
-        return switch (s) {
-            case 0 -> "待触发";
-            case 1 -> "已发送";
-            case 2 -> "已取消";
-            case 3 -> "发送失败";
             default -> "未知";
         };
     }

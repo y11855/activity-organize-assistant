@@ -1,5 +1,7 @@
 package com.aiapp.activityassistant.service;
 
+import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
 import com.aiapp.activityassistant.entity.TaskAssignment;
 import com.aiapp.activityassistant.vo.MyTaskVO;
@@ -28,11 +30,11 @@ public interface TaskService extends IService<TaskAssignment> {
     void complete(Long id);
 
     /**
-     * 我的任务列表（仅当前用户被分配的任务，权限隔离）
+     * 分页查询我的任务（仅当前用户被分配的任务，权限隔离）
      *
      * @param status 可选状态过滤
      */
-    List<MyTaskVO> listMine(Integer status);
+    PageVO<MyTaskVO> listMine(Integer status, PageQuery query);
 
     /**
      * 获取活动下的任务列表

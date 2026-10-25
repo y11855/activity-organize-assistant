@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getQuestionnaireById, submitResponse } from '@/api/questionnaire'
 import type { QuestionnaireVO } from '@/types'
+import { debounce } from '@/utils'
 
 interface Question {
   title: string
@@ -40,7 +41,8 @@ async function load() {
   }
 }
 
-async function onSubmit() {
+async function doSubmit() {
+  if (submitting.value) return
   // 必填校验
   for (let i = 0; i < questions.value.length; i++) {
     const q = questions.value[i]
@@ -64,6 +66,8 @@ async function onSubmit() {
     submitting.value = false
   }
 }
+
+const onSubmit = debounce(doSubmit, 300)
 
 onMounted(load)
 </script>

@@ -1,15 +1,11 @@
 import { request } from './request'
-import type { QuestionnaireVO, QuestionnaireResponseVO, ResponseStatisticsVO } from '@/types'
-
-/** 为活动生成问卷 */
-export function generateQuestionnaire(activityId: string) {
-  return request<string>({ url: `/questionnaires/generate?activityId=${activityId}`, method: 'POST' })
-}
-
-/** 获取活动问卷详情 */
-export function getQuestionnaire(activityId: string) {
-  return request<QuestionnaireVO>({ url: `/questionnaires?activityId=${activityId}`, method: 'GET' })
-}
+import type {
+  QuestionnaireVO,
+  QuestionnaireResponseVO,
+  ResponseStatisticsVO,
+  PageQuery,
+  PageVO
+} from '@/types'
 
 /** 发布问卷 */
 export function publishQuestionnaire(id: string) {
@@ -23,12 +19,12 @@ export function closeQuestionnaire(id: string) {
 
 /** 活动问卷列表 */
 export function listQuestionnaires(activityId: string) {
-  return request<QuestionnaireVO[]>({ url: `/questionnaires/list?activityId=${activityId}`, method: 'GET' })
+  return request<QuestionnaireVO[]>({ url: `/questionnaires?activityId=${activityId}`, method: 'GET' })
 }
 
-/** 我的问卷列表（含封面、报名数） */
-export function listMyQuestionnaires() {
-  return request<QuestionnaireVO[]>({ url: '/questionnaires/mine', method: 'GET' })
+/** 分页获取我的问卷列表（含封面、报名数） */
+export function listMyQuestionnaires(params: PageQuery = {}) {
+  return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/mine', method: 'GET', params })
 }
 
 /** 问卷详情（填写页） */

@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.controller;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.LoginDTO;
+import com.aiapp.activityassistant.dto.RegisterDTO;
 import com.aiapp.activityassistant.service.AuthService;
 import com.aiapp.activityassistant.service.LoginCryptoService;
 import com.aiapp.activityassistant.vo.LoginVO;
@@ -41,6 +42,12 @@ public class AuthController {
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
         return Result.success(authService.login(dto));
+    }
+
+    @Operation(summary = "注册")
+    @PostMapping("/register")
+    public Result<LoginVO> register(@Valid @RequestBody RegisterDTO dto) {
+        return Result.success(authService.register(dto));
     }
 
     @Operation(summary = "登出")

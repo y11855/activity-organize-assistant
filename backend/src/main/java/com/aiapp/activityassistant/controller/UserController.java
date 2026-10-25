@@ -1,8 +1,8 @@
 package com.aiapp.activityassistant.controller;
 
 import com.aiapp.activityassistant.common.result.Result;
-import com.aiapp.activityassistant.entity.User;
 import com.aiapp.activityassistant.service.UserService;
+import com.aiapp.activityassistant.vo.UserSimpleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +23,9 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "获取全部用户（成员选择器用）")
+    @Operation(summary = "获取全部启用用户（成员选择器用）")
     @GetMapping
-    public Result<List<User>> listAll() {
+    public Result<List<UserSimpleVO>> listAll() {
         return Result.success(userService.listAll());
     }
 }

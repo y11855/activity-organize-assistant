@@ -4,27 +4,19 @@ import type {
   ActivitySaveDTO,
   ActivityDraftVO,
   GenerateOptions,
-  ActivityEventLogVO
+  ActivityEventLogVO,
+  PageQuery,
+  PageVO
 } from '@/types'
-
-/** 活动分解树节点 */
-export interface BreakdownNode {
-  id: string
-  name: string
-  type: 'activity' | 'category' | 'task' | 'material' | 'questionnaire' | 'reminder'
-  status: number | null
-  meta: Record<string, any> | null
-  children: BreakdownNode[]
-}
 
 /** 创建活动（触发 Agent 全流程） */
 export function createActivity(payload: ActivitySaveDTO) {
   return request<string>({ url: '/activities', method: 'POST', data: payload })
 }
 
-/** 我创建的活动列表 */
-export function listMyActivities() {
-  return request<ActivityVO[]>({ url: '/activities/mine', method: 'GET' })
+/** 分页获取我创建的活动列表 */
+export function listMyActivities(params: PageQuery = {}) {
+  return request<PageVO<ActivityVO>>({ url: '/activities/mine', method: 'GET', params })
 }
 
 /** 活动详情 */
@@ -63,11 +55,6 @@ export function publishActivity(id: string) {
 /** 生成复盘总结 */
 export function generateReview(id: string) {
   return request<string>({ url: `/activities/${id}/review`, method: 'POST' })
-}
-
-/** 活动分解树（活动→任务/物料/问卷/提醒） */
-export function getActivityBreakdownTree() {
-  return request<BreakdownNode[]>({ url: '/activities/breakdown-tree', method: 'GET' })
 }
 
 /** 确认任务分工并通知成员，返回已通知人数 */

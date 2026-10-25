@@ -1,10 +1,11 @@
 package com.aiapp.activityassistant.service;
 
+import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.dto.ActivityGenerateDTO;
 import com.aiapp.activityassistant.dto.ActivitySaveDTO;
 import com.aiapp.activityassistant.dto.ReminderDraftDTO;
 import com.aiapp.activityassistant.entity.Activity;
-import com.aiapp.activityassistant.vo.ActivityBreakdownNodeVO;
 import com.aiapp.activityassistant.vo.ActivityDraftVO;
 import com.aiapp.activityassistant.vo.ActivityVO;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -27,9 +28,9 @@ public interface ActivityService extends IService<Activity> {
     ActivityVO detail(Long id);
 
     /**
-     * 列出当前用户创建的活动（权限控制）
+     * 分页列出当前用户创建的活动（权限控制）
      */
-    List<ActivityVO> listMine();
+    PageVO<ActivityVO> listMine(PageQuery query);
 
     /**
      * 触发 AI 生成活动内容草稿（异步），状态由草稿 → 策划中
@@ -74,11 +75,6 @@ public interface ActivityService extends IService<Activity> {
      * 清除活动详情缓存（活动/子资源发生变更后调用）
      */
     void evictDetailCache(Long activityId);
-
-    /**
-     * 获取活动分解树：活动 → 任务/物料/问卷/提醒 的多级树结构
-     */
-    List<ActivityBreakdownNodeVO> breakdownTree();
 
     /**
      * 确认任务分工并向被分配成员发送站内消息

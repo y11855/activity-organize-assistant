@@ -3,6 +3,8 @@ package com.aiapp.activityassistant.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 登录响应
  */
@@ -22,6 +24,12 @@ public class LoginVO {
     @Schema(description = "昵称")
     private String nickname;
 
-    @Schema(description = "角色")
-    private String role;
+    @Schema(description = "角色编码列表")
+    private List<String> roles;
+
+    @Schema(description = "角色名称列表")
+    private List<String> roleNames;
+
+    @Schema(description = "权限编码列表")
+    private List<String> permissions;
 }

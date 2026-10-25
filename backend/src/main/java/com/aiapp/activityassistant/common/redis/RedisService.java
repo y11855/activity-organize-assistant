@@ -59,4 +59,19 @@ public class RedisService {
                 .setIfAbsent(KEY_PREFIX + key, value, timeout);
         return Boolean.TRUE.equals(ok);
     }
+
+    /** 向集合添加元素 */
+    public Long sAdd(String key, Object... values) {
+        return redisTemplate.opsForSet().add(KEY_PREFIX + key, values);
+    }
+
+    /** 读取集合全部元素 */
+    public java.util.Set<Object> sMembers(String key) {
+        return redisTemplate.opsForSet().members(KEY_PREFIX + key);
+    }
+
+    /** 从集合移除元素 */
+    public Long sRemove(String key, Object... values) {
+        return redisTemplate.opsForSet().remove(KEY_PREFIX + key, values);
+    }
 }

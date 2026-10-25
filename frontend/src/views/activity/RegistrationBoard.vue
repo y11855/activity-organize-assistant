@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { listQuestionnaires } from '@/api/questionnaire'
 import { listResponses, getStatistics, exportResponses } from '@/api/questionnaire'
 import type { QuestionnaireVO, QuestionnaireResponseVO, ResponseStatisticsVO } from '@/types'
-import { formatDate } from '@/utils'
+import { formatDate, debounce } from '@/utils'
 
 const route = useRoute()
 const activityId = String(route.params.id)
@@ -53,8 +53,8 @@ function onStatusChange() {
   loadResponses()
 }
 
-async function onExport() {
-  if (!regQ.value) return
+async function doExport() {
+  if (!regQ.value || exporting.value) return
   exporting.value = true
   try {
     const blob = await exportResponses(regQ.value.id)
@@ -85,6 +85,8 @@ function answerSummary(answer?: string): string {
     return answer
   }
 }
+
+const onExport = debounce(doExport, 300)
 
 onMounted(load)
 </script>
@@ -224,7 +226,7 @@ onMounted(load)
 
 .timeline__fill {
   height: 100%;
-  background: linear-gradient(90deg, #409eff, #67c23a);
+  background: linear-gradient(90deg, #9aabc4, #b8c3d1);
   border-radius: 8px;
   min-width: 4px;
 }

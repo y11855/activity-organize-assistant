@@ -20,6 +20,6 @@ public class User extends BaseEntity {
 
     private String nickname;
 
-    /** 角色: admin / leader / member */
-    private String role;
+    /** 账号状态: 1启用 0禁用 */
+    private Integer status;
 }

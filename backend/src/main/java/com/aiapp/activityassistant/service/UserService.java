@@ -1,6 +1,7 @@
 package com.aiapp.activityassistant.service;
 
 import com.aiapp.activityassistant.entity.User;
+import com.aiapp.activityassistant.vo.UserSimpleVO;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
@@ -16,7 +17,7 @@ public interface UserService extends IService<User> {
     User getByUsername(String username);
 
     /**
-     * 查询全部用户（成员选择器用，不含密码）
+     * 查询全部启用用户（成员选择器用，不含密码等敏感字段）
      */
-    List<User> listAll();
+    List<UserSimpleVO> listAll();
 }

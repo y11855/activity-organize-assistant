@@ -1,16 +1,19 @@
 package com.aiapp.activityassistant.controller;
 
+import com.aiapp.activityassistant.common.annotation.Idempotent;
+import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.ActivityGenerateDTO;
 import com.aiapp.activityassistant.dto.ActivitySaveDTO;
 import com.aiapp.activityassistant.service.ActivityService;
-import com.aiapp.activityassistant.vo.ActivityBreakdownNodeVO;
 import com.aiapp.activityassistant.vo.ActivityDraftVO;
 import com.aiapp.activityassistant.vo.ActivityVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,8 +23,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 /**
  * 活动管理
  */
@@ -29,26 +30,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/activities")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('activity:view')")
 public class ActivityController {
 
     private final ActivityService activityService;
 
     @Operation(summary = "一句话发起活动（触发 Agent 全流程）")
     @PostMapping
+    @Idempotent(prefix = "activity:create", ttl = 3)
     public Result<Long> create(@Valid @RequestBody ActivitySaveDTO dto) {
         return Result.success(activityService.create(dto));
     }
 
-    @Operation(summary = "获取我创建的活动列表")
+    @Operation(summary = "分页获取我创建的活动列表")
     @GetMapping("/mine")
-    public Result<List<ActivityVO>> listMine() {
-        return Result.success(activityService.listMine());
-    }
-
-    @Operation(summary = "获取活动分解树（活动→任务/物料/问卷/提醒）")
-    @GetMapping("/breakdown-tree")
-    public Result<List<ActivityBreakdownNodeVO>> breakdownTree() {
-        return Result.success(activityService.breakdownTree());
+    public Result<PageVO<ActivityVO>> listMine(PageQuery query) {
+        return Result.success(activityService.listMine(query));
     }
 
     @Operation(summary = "获取活动详情")
@@ -67,6 +64,7 @@ public class ActivityController {
 
     @Operation(summary = "触发 AI 生成活动内容草稿（按勾选的生成项）")
     @PostMapping("/{id}/generate")
+    @Idempotent(prefix = "activity:generate", ttl = 5)
     public Result<Void> generate(@PathVariable Long id, @RequestBody ActivityGenerateDTO options) {
         activityService.generate(id, options);
         return Result.success();
@@ -87,6 +85,7 @@ public class ActivityController {
 
     @Operation(summary = "确认发布：正式发布任务分工/物料/问卷/提醒")
     @PostMapping("/{id}/publish")
+    @Idempotent(prefix = "activity:publish", ttl = 5)
     public Result<Void> publish(@PathVariable Long id) {
         activityService.publish(id);
         return Result.success();
@@ -94,12 +93,14 @@ public class ActivityController {
 
     @Operation(summary = "生成活动复盘总结")
     @PostMapping("/{id}/review")
+    @Idempotent(prefix = "activity:review", ttl = 10)
     public Result<String> review(@PathVariable Long id) {
         return Result.success(activityService.generateReview(id));
     }
 
     @Operation(summary = "确认任务分工并通知成员")
     @PostMapping("/{id}/confirm-tasks")
+    @Idempotent(prefix = "activity:confirm-tasks", ttl = 5)
     public Result<Integer> confirmTasks(@PathVariable Long id) {
         return Result.success(activityService.confirmTasks(id));
     }

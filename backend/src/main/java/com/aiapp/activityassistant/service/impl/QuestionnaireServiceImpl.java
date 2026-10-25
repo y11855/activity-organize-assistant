@@ -1,7 +1,9 @@
 package com.aiapp.activityassistant.service.impl;
 
 import com.aiapp.activityassistant.common.context.UserContext;
+import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.QuestionnaireSaveDTO;
 import com.aiapp.activityassistant.dto.ResponseExportDTO;
@@ -19,6 +21,7 @@ import com.aiapp.activityassistant.vo.QuestionnaireResponseVO;
 import com.aiapp.activityassistant.vo.QuestionnaireVO;
 import com.aiapp.activityassistant.vo.ResponseStatisticsVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -62,21 +65,6 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         q.setStatus(1);
         save(q);
         return q.getId();
-    }
-
-    @Override
-    public QuestionnaireVO detailByActivity(Long activityId) {
-        Questionnaire q = getOne(new LambdaQueryWrapper<Questionnaire>()
-                .eq(Questionnaire::getActivityId, activityId));
-        if (q == null) {
-            return null;
-        }
-        QuestionnaireVO vo = new QuestionnaireVO();
-        BeanUtils.copyProperties(q, vo);
-        Long count = responseMapper.selectCount(new LambdaQueryWrapper<QuestionnaireResponse>()
-                .eq(QuestionnaireResponse::getQuestionnaireId, q.getId()));
-        vo.setResponseCount(count.intValue());
-        return vo;
     }
 
     @Override
@@ -126,19 +114,20 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
     }
 
     @Override
-    public List<QuestionnaireVO> listMine() {
+    public PageVO<QuestionnaireVO> listMine(PageQuery query) {
         Long currentUserId = UserContext.getCurrentUserId();
         List<Activity> myActivities = activityService.list(new LambdaQueryWrapper<Activity>()
                 .eq(Activity::getCreatorId, currentUserId));
         if (myActivities.isEmpty()) {
-            return new ArrayList<>();
+            return PageVO.of(new ArrayList<>(), 0L, query.getPage(), query.getSize());
         }
         Map<Long, String> activityTitleMap = myActivities.stream()
                 .collect(Collectors.toMap(Activity::getId, a -> a.getTitle() == null ? "" : a.getTitle()));
-        List<Questionnaire> list = list(new LambdaQueryWrapper<Questionnaire>()
-                .in(Questionnaire::getActivityId, activityTitleMap.keySet())
-                .orderByDesc(Questionnaire::getCreateTime));
-        return list.stream().map(q -> {
+        Page<Questionnaire> page = page(new Page<>(query.getPage(), query.getSize()),
+                new LambdaQueryWrapper<Questionnaire>()
+                        .in(Questionnaire::getActivityId, activityTitleMap.keySet())
+                        .orderByDesc(Questionnaire::getCreateTime));
+        List<QuestionnaireVO> records = page.getRecords().stream().map(q -> {
             QuestionnaireVO vo = new QuestionnaireVO();
             BeanUtils.copyProperties(q, vo);
             vo.setActivityTitle(activityTitleMap.getOrDefault(q.getActivityId(), ""));
@@ -147,6 +136,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
             vo.setResponseCount(count.intValue());
             return vo;
         }).collect(Collectors.toList());
+        return PageVO.of(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override
