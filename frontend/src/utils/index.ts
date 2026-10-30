@@ -12,7 +12,8 @@ export function downloadBlob(blob: Blob, filename: string) {
   link.href = url
   link.download = filename
   link.click()
-  window.URL.revokeObjectURL(url)
+  // 立即 revoke 可能让浏览器还没来得及读取 blob 就开始下载就被取消，延迟释放更稳妥
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000)
 }
 
 type DebouncedFn<T extends (...args: any[]) => any> = ((...args: Parameters<T>) => void) & {

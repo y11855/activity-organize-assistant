@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { listMyActivities, createActivity, cancelActivity } from '@/api/activity'
 import { listUsers } from '@/api/user'
 import { useUserStore } from '@/stores'
+import ActivityTree from '@/components/ActivityTree.vue'
 import type { ActivityVO, ActivitySaveDTO, UserSimpleVO } from '@/types'
 import { debounce, formatDate } from '@/utils'
 
@@ -42,6 +43,15 @@ const cancelVisible = ref(false)
 const cancelTarget = ref('')
 const deleteRecord = ref(false)
 const cancelling = ref(false)
+
+/** 活动分解树对话框 */
+const treeVisible = ref(false)
+const treeActivityId = ref('')
+
+function openTree(id: string) {
+  treeActivityId.value = id
+  treeVisible.value = true
+}
 
 function statusTagType(status: number): 'success' | 'danger' | 'warning' | 'info' {
   if (status === 4) return 'danger'
@@ -171,9 +181,10 @@ onMounted(loadList)
           <el-tag :type="statusTagType(row.status)">{{ statusMap[row.status] ?? '未知' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="220">
+      <el-table-column label="操作" width="280">
         <template #default="{ row }">
           <el-button link type="primary" @click="$router.push(`/activities/${row.id}`)">详情</el-button>
+          <el-button link type="primary" @click="openTree(row.id)">分解树</el-button>
           <el-button
             v-if="row.status !== 4"
             link
@@ -254,6 +265,10 @@ onMounted(loadList)
       <el-button @click="cancelVisible = false">再想想</el-button>
       <el-button type="danger" :loading="cancelling" @click="onConfirmCancel">确认取消活动</el-button>
     </template>
+  </el-dialog>
+
+  <el-dialog v-model="treeVisible" title="活动分解树" width="720px" destroy-on-close>
+    <ActivityTree v-if="treeVisible && treeActivityId" :activity-id="treeActivityId" />
   </el-dialog>
 </template>
 

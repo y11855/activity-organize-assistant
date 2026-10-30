@@ -48,6 +48,12 @@ public class ActivityController {
         return Result.success(activityService.listMine(query));
     }
 
+    @Operation(summary = "分页获取我作为参与成员的活动列表（我的参与）")
+    @GetMapping("/participated")
+    public Result<PageVO<ActivityVO>> listParticipated(PageQuery query) {
+        return Result.success(activityService.listParticipated(query));
+    }
+
     @Operation(summary = "获取活动详情")
     @GetMapping("/{id}")
     public Result<ActivityVO> detail(@PathVariable Long id) {

@@ -33,6 +33,16 @@ public interface ActivityService extends IService<Activity> {
     PageVO<ActivityVO> listMine(PageQuery query);
 
     /**
+     * 分页列出当前用户作为参与成员的活动（「我的参与」）
+     */
+    PageVO<ActivityVO> listParticipated(PageQuery query);
+
+    /**
+     * 校验当前用户可访问该活动：创建人或参与成员
+     */
+    void checkAccess(Long activityId);
+
+    /**
      * 触发 AI 生成活动内容草稿（异步），状态由草稿 → 策划中
      *
      * @param options 发起人勾选的生成项

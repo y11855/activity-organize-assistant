@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '我的活动', icon: 'Calendar', permission: 'activity:view' }
       },
       {
+        path: 'participations',
+        name: 'my-participations',
+        component: () => import('@/views/activity/MyParticipations.vue'),
+        meta: { title: '我的参与', icon: 'Star', permission: 'activity:view' }
+      },
+      {
         path: 'activities/:id',
         name: 'activity-detail',
         component: () => import('@/views/activity/ActivityDetail.vue'),
@@ -39,6 +45,12 @@ const routes: RouteRecordRaw[] = [
         name: 'activity-registration',
         component: () => import('@/views/activity/RegistrationBoard.vue'),
         meta: { title: '报名人员看板', hidden: true, permission: 'questionnaire:view' }
+      },
+      {
+        path: 'activities/:id/files',
+        name: 'activity-files',
+        component: () => import('@/views/activity/ActivityFiles.vue'),
+        meta: { title: '活动资料', hidden: true, permission: 'activity:view' }
       },
       {
         path: 'tasks',

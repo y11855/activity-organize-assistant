@@ -57,6 +57,7 @@ export interface TaskVO {
 /** 活动详情 */
 export interface ActivityVO {
   id: string
+  creatorId?: string
   creatorid: string
   title: string
   description?: string
@@ -236,4 +237,47 @@ export interface ActivityDraftVO {
   questions?: QuestionDraft[]
   tasks?: TaskAssignDTO[]
   reminders?: ReminderDraft[]
+}
+
+/** 活动资料文件 */
+export interface ActivityFileVO {
+  id: string
+  activityId: string
+  name: string
+  description?: string
+  ext?: string
+  size: number
+  uploaderId?: string
+  uploaderName?: string
+  sha256?: string
+  url: string
+  /** 当前用户是否可删除（创建人可删全部，成员仅可删自传） */
+  canDelete?: boolean
+  createTime: string
+}
+
+/** 单文件直传结果 */
+export interface FileUploadVO {
+  id?: string
+  name: string
+  size: number
+  url: string
+}
+
+/** 分片上传会话 */
+export interface ChunkInitVO {
+  uploadId: string
+  chunkSize: number
+  totalChunks: number
+}
+
+/** 分片上传进度（断点续传查询结果） */
+export interface ChunkStatusVO {
+  uploadId: string
+  fileName: string
+  fileSize: number
+  chunkSize: number
+  totalChunks: number
+  uploadedChunks: number[]
+  merged: boolean
 }

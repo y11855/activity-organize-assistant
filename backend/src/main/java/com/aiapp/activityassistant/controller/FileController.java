@@ -1,75 +1,113 @@
 package com.aiapp.activityassistant.controller;
 
-import cn.hutool.core.util.IdUtil;
 import com.aiapp.activityassistant.common.exception.BusinessException;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.common.result.ResultCode;
+import com.aiapp.activityassistant.dto.ChunkInitDTO;
+import com.aiapp.activityassistant.entity.ActivityFile;
+import com.aiapp.activityassistant.service.FileDownloadService;
+import com.aiapp.activityassistant.service.FileService;
+import com.aiapp.activityassistant.vo.ActivityFileVO;
+import com.aiapp.activityassistant.vo.ChunkInitVO;
+import com.aiapp.activityassistant.vo.ChunkStatusVO;
+import com.aiapp.activityassistant.vo.FileUploadVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 
 /**
- * 文件上传（本地磁盘存储）
+ * 文件传输：小文件直传 / 大文件分片上传（含断点续传、分片校验）/ Range 下载 / 打包下载
  */
-@Slf4j
-@Tag(name = "文件上传")
+@Tag(name = "文件传输")
 @RestController
 @RequestMapping("/files")
+@RequiredArgsConstructor
+@PreAuthorize("hasAuthority('activity:view')")
 public class FileController {
 
-    /** 允许的图片格式 */
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
-    /** 单张图片最大 5MB */
-    private static final long MAX_SIZE = 5 * 1024 * 1024;
-    /** 存储目录（默认相对启动目录，Tomcat 部署时由 UPLOAD_DIR 指定绝对路径） */
-    @Value("${app.upload-dir:uploads}")
-    private String uploadDir;
+    private final FileService fileService;
+    private final FileDownloadService fileDownloadService;
 
-    @Operation(summary = "上传图片（jpg/png/webp，≤5MB）")
+    @Operation(summary = "上传单个小文件（≤5MB）；传活动资料时带 activityId，问卷封面等临时图片可不带")
     @PostMapping("/upload")
-    public Result<Map<String, String>> upload(@RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "请选择要上传的图片");
-        }
-        if (file.getSize() > MAX_SIZE) {
-            throw new BusinessException(ResultCode.PARAM_ERROR,
-                    "图片大小不能超过 5MB，当前文件 " + String.format("%.1f", file.getSize() / 1024.0 / 1024.0) + "MB");
-        }
-        String original = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-        String ext = original.contains(".")
-                ? original.substring(original.lastIndexOf('.') + 1).toLowerCase()
-                : "";
-        if (!ALLOWED_EXTENSIONS.contains(ext)) {
-            throw new BusinessException(ResultCode.PARAM_ERROR,
-                    "仅支持 JPG、PNG、WebP 格式的图片");
-        }
+    public Result<FileUploadVO> upload(@RequestParam(required = false) Long activityId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String description,
+            @RequestParam("file") MultipartFile file) {
+        return Result.success(fileService.upload(activityId, name, description, file));
+    }
 
-        String filename = IdUtil.fastSimpleUUID() + "." + ext;
-        try {
-            Path dir = Paths.get(uploadDir).toAbsolutePath().normalize();
-            Files.createDirectories(dir);
-            file.transferTo(dir.resolve(filename));
-        } catch (IOException e) {
-            log.error("[文件上传] 保存失败", e);
-            throw new BusinessException(ResultCode.SERVER_ERROR, "图片保存失败，请重试");
-        }
+    @Operation(summary = "初始化分片上传，返回 uploadId / 分片大小 / 总分片数")
+    @PostMapping("/chunks")
+    public Result<ChunkInitVO> initChunk(@Valid @RequestBody ChunkInitDTO dto) {
+        return Result.success(fileService.initChunk(dto));
+    }
 
-        // context-path 为 /api，前端经 Vite 代理 /api 访问
-        String url = "/api/uploads/" + filename;
-        log.info("[文件上传] 成功: {} -> {}", original, url);
-        return Result.success(Map.of("url", url));
+    @Operation(summary = "查询已上传分片（断点续传：客户端只需补传缺失分片）")
+    @GetMapping("/chunks/{uploadId}")
+    public Result<ChunkStatusVO> chunkStatus(@PathVariable String uploadId) {
+        return Result.success(fileService.chunkStatus(uploadId));
+    }
+
+    @Operation(summary = "上传单个分片（服务端校验 SHA-256，不通过则要求重传该片）")
+    @PutMapping("/chunks/{uploadId}/{index}")
+    public Result<Void> uploadChunk(@PathVariable String uploadId, @PathVariable int index,
+            @RequestParam("sha256") String sha256,
+            @RequestParam("chunk") MultipartFile chunk) {
+        fileService.uploadChunk(uploadId, index, sha256, chunk);
+        return Result.success();
+    }
+
+    @Operation(summary = "合并分片（服务端校验完整性并生成文件记录）")
+    @PostMapping("/chunks/{uploadId}/merge")
+    public Result<ActivityFileVO> merge(@PathVariable String uploadId) {
+        return Result.success(fileService.merge(uploadId));
+    }
+
+    @Operation(summary = "活动资料列表")
+    @GetMapping
+    public Result<List<ActivityFileVO>> list(@RequestParam Long activityId) {
+        return Result.success(fileService.listByActivity(activityId));
+    }
+
+    @Operation(summary = "下载文件（支持 Range 断点续传）")
+    @GetMapping("/{id}/download")
+    public void download(@PathVariable Long id, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        fileDownloadService.writeFile(fileService.requireFile(id), request, response);
+    }
+
+    @Operation(summary = "一键打包下载活动资料（边压缩边输出）")
+    @GetMapping("/package")
+    public void downloadPackage(@RequestParam Long activityId, HttpServletResponse response) throws IOException {
+        List<ActivityFile> files = fileService.listEntitiesByActivity(activityId);
+        if (files.isEmpty()) {
+            throw new BusinessException(ResultCode.NOT_FOUND, "暂无可打包的资料");
+        }
+        fileDownloadService.writeZip("活动资料.zip", files, response);
+    }
+
+    @Operation(summary = "删除资料文件")
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        fileService.delete(id);
+        return Result.success();
     }
 }

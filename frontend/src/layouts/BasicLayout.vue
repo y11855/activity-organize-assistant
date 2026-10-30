@@ -124,6 +124,16 @@ function onLogout() {
   router.push('/login')
 }
 
+function onUserCommand(command: string) {
+  if (command === 'participations') {
+    router.push({ name: 'my-participations' })
+    return
+  }
+  if (command === 'logout') {
+    onLogout()
+  }
+}
+
 onMounted(() => {
   // 进入布局时刷新一次权限，管理员调整授权后可即时生效
   refreshCurrentUser()
@@ -174,11 +184,12 @@ onUnmounted(() => {
           <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="layout__bell">
             <el-icon :size="20" style="cursor: pointer" @click="openDrawer"><Bell /></el-icon>
           </el-badge>
-          <el-dropdown @command="onLogout">
+          <el-dropdown @command="onUserCommand">
             <span class="layout__user">{{ userStore.userInfo?.nickname || '用户' }}</span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="participations">我的参与</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>

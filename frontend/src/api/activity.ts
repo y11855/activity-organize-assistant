@@ -19,6 +19,11 @@ export function listMyActivities(params: PageQuery = {}) {
   return request<PageVO<ActivityVO>>({ url: '/activities/mine', method: 'GET', params })
 }
 
+/** 分页获取我作为参与成员的活动列表 */
+export function listMyParticipations(params: PageQuery = {}) {
+  return request<PageVO<ActivityVO>>({ url: '/activities/participated', method: 'GET', params })
+}
+
 /** 活动详情 */
 export function getActivityDetail(id: string) {
   return request<ActivityVO>({ url: `/activities/${id}`, method: 'GET' })

@@ -44,8 +44,10 @@ export const useUserStore = defineStore('user', {
       this.userInfo = null
     }
   },
+  // 会话存 sessionStorage：每个标签页一份登录态，同窗口多标签可分别登录不同账号
   persist: {
     key: 'activity-assistant-user',
+    storage: sessionStorage,
     paths: ['token', 'userInfo']
   }
 })

@@ -24,7 +24,10 @@ public enum ResultCode {
     TOOL_RETRY_EXHAUSTED(1003, "工具调用重试次数已耗尽"),
     REMINDER_ALREADY_CANCELLED(1004, "提醒任务已取消"),
     ACTIVITY_NOT_OWNED(1005, "只能操作自己创建的活动"),
-    FREQUENT_OPERATION(1006, "操作过于频繁，请稍后再试");
+    FREQUENT_OPERATION(1006, "操作过于频繁，请稍后再试"),
+    CHUNK_CHECKSUM_MISMATCH(1007, "分片校验失败，需要重传该分片"),
+    CHUNK_NOT_COMPLETE(1008, "分片未全部上传，无法合并"),
+    UPLOAD_SESSION_NOT_FOUND(1009, "上传会话不存在或已过期");
 
     private final Integer code;
     private final String message;

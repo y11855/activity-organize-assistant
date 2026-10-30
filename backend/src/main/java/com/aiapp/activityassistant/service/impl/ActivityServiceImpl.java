@@ -331,6 +331,9 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
 
     @Override
     public ActivityVO detail(Long id) {
+        // 权限校验必须在缓存之前：创建人或参与成员才可访问
+        checkAccess(id);
+
         // 1. 先查 Redis 缓存
         Object cached = redisService.get(DETAIL_CACHE_KEY + id);
         if (cached instanceof ActivityVO vo) {
@@ -338,7 +341,6 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         }
 
         // 2. 缓存未命中，查库
-        checkOwnership(id);
         Activity activity = getById(id);
         if (activity == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
@@ -382,6 +384,42 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             return vo;
         }).collect(Collectors.toList());
         return PageVO.of(records, page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    @Override
+    public PageVO<ActivityVO> listParticipated(PageQuery query) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        // member_ids 是 JSON 字符串，先按创建时间倒序取有成员的活动，再精确匹配用户 ID，避免 LIKE 误命中
+        List<Activity> matched = list(new LambdaQueryWrapper<Activity>()
+                .isNotNull(Activity::getMemberIds)
+                .orderByDesc(Activity::getCreateTime)).stream()
+                .filter(a -> parseMemberIds(a.getMemberIds()).contains(currentUserId))
+                .toList();
+        long page = query.getPage();
+        long size = query.getSize();
+        int from = (int) Math.min((page - 1) * size, matched.size());
+        int to = (int) Math.min(from + size, matched.size());
+        List<ActivityVO> records = matched.subList(from, to).stream().map(a -> {
+            ActivityVO vo = new ActivityVO();
+            BeanUtils.copyProperties(a, vo);
+            vo.setMemberNames(resolveMemberNames(a.getMemberIds()));
+            return vo;
+        }).toList();
+        return PageVO.of(records, matched.size(), page, size);
+    }
+
+    @Override
+    public void checkAccess(Long activityId) {
+        Activity activity = getById(activityId);
+        if (activity == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        Long currentUserId = UserContext.getCurrentUserId();
+        if (currentUserId.equals(activity.getCreatorId())
+                || parseMemberIds(activity.getMemberIds()).contains(currentUserId)) {
+            return;
+        }
+        throw new BusinessException(ResultCode.FORBIDDEN, "你不是该活动的参与成员，无权访问");
     }
 
     @Override
@@ -455,17 +493,22 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
 
     /** 解析成员ID JSON → 昵称列表 */
     private List<String> resolveMemberNames(String memberIdsJson) {
+        List<Long> ids = parseMemberIds(memberIdsJson);
+        if (ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return userService.listByIds(ids).stream()
+                .map(u -> u.getNickname() == null ? u.getUsername() : u.getNickname())
+                .collect(Collectors.toList());
+    }
+
+    /** 解析 member_ids JSON 数组，异常时返回空列表 */
+    private List<Long> parseMemberIds(String memberIdsJson) {
         if (memberIdsJson == null || memberIdsJson.isBlank()) {
             return new ArrayList<>();
         }
         try {
-            List<Long> ids = cn.hutool.json.JSONUtil.toList(memberIdsJson, Long.class);
-            if (ids.isEmpty()) {
-                return new ArrayList<>();
-            }
-            return userService.listByIds(ids).stream()
-                    .map(u -> u.getNickname() == null ? u.getUsername() : u.getNickname())
-                    .collect(Collectors.toList());
+            return cn.hutool.json.JSONUtil.toList(memberIdsJson, Long.class);
         } catch (Exception e) {
             log.warn("[活动] 解析成员ID失败: {}", memberIdsJson);
             return new ArrayList<>();
