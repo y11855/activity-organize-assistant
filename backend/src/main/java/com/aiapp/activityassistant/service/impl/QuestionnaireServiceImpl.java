@@ -140,6 +140,37 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
     }
 
     @Override
+    public PageVO<QuestionnaireVO> listPublished(PageQuery query) {
+        Page<Questionnaire> page = page(new Page<>(query.getPage(), query.getSize()),
+                new LambdaQueryWrapper<Questionnaire>()
+                        .eq(Questionnaire::getStatus, 1)
+                        .eq(Questionnaire::getType, 1)
+                        .orderByDesc(Questionnaire::getCreateTime));
+        List<Questionnaire> records = page.getRecords();
+        if (records.isEmpty()) {
+            return PageVO.of(new ArrayList<>(), page.getTotal(), page.getCurrent(), page.getSize());
+        }
+        List<Long> activityIds = records.stream().map(Questionnaire::getActivityId).distinct().toList();
+        Map<Long, String> activityTitleMap = activityService.listByIds(activityIds).stream()
+                .collect(Collectors.toMap(Activity::getId, a -> a.getTitle() == null ? "" : a.getTitle()));
+        // 一次性统计本页各问卷的报名人数，避免逐条查询
+        List<Long> questionnaireIds = records.stream().map(Questionnaire::getId).toList();
+        Map<Long, Long> countMap = responseMapper.selectList(new LambdaQueryWrapper<QuestionnaireResponse>()
+                        .select(QuestionnaireResponse::getQuestionnaireId)
+                        .in(QuestionnaireResponse::getQuestionnaireId, questionnaireIds))
+                .stream()
+                .collect(Collectors.groupingBy(QuestionnaireResponse::getQuestionnaireId, Collectors.counting()));
+        List<QuestionnaireVO> list = records.stream().map(q -> {
+            QuestionnaireVO vo = new QuestionnaireVO();
+            BeanUtils.copyProperties(q, vo);
+            vo.setActivityTitle(activityTitleMap.getOrDefault(q.getActivityId(), ""));
+            vo.setResponseCount(countMap.getOrDefault(q.getId(), 0L).intValue());
+            return vo;
+        }).collect(Collectors.toList());
+        return PageVO.of(list, page.getTotal(), page.getCurrent(), page.getSize());
+    }
+
+    @Override
     public QuestionnaireVO detail(Long id) {
         Questionnaire q = getById(id);
         if (q == null) {

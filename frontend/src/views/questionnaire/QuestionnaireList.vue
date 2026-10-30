@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listMyQuestionnaires,
+  listPublishedQuestionnaires,
   updateQuestionnaire,
   publishQuestionnaire,
   closeQuestionnaire
@@ -13,11 +14,19 @@ import type { QuestionnaireVO } from '@/types'
 import { debounce, formatDate } from '@/utils'
 
 const router = useRouter()
+/** 全部已发布（所有人可看可填） / 我发布的（创建者管理） */
+const activeTab = ref<'all' | 'mine'>('all')
 const list = ref<QuestionnaireVO[]>([])
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const loading = ref(false)
+const published = ref<QuestionnaireVO[]>([])
+const publishedPage = ref(1)
+const publishedTotal = ref(0)
+const publishedLoading = ref(false)
+const currentList = computed(() => (activeTab.value === 'all' ? published.value : list.value))
+const currentLoading = computed(() => (activeTab.value === 'all' ? publishedLoading.value : loading.value))
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -35,6 +44,17 @@ async function loadList() {
     total.value = res.total
   } finally {
     loading.value = false
+  }
+}
+
+async function loadPublished() {
+  publishedLoading.value = true
+  try {
+    const res = await listPublishedQuestionnaires({ page: publishedPage.value, size: size.value })
+    published.value = res.records
+    publishedTotal.value = res.total
+  } finally {
+    publishedLoading.value = false
   }
 }
 
@@ -137,15 +157,31 @@ const onClose = debounce(async (row: QuestionnaireVO) => {
   loadList()
 }, 500)
 
-onMounted(loadList)
+onMounted(() => {
+  loadPublished()
+  loadList()
+})
 </script>
 
 <template>
-  <div v-loading="loading">
-    <el-empty v-if="!list.length" description="暂无问卷，请先在活动详情中生成报名问卷" />
+  <div v-loading="currentLoading">
+    <div class="qn-toolbar">
+      <el-radio-group v-model="activeTab">
+        <el-radio-button value="all">全部已发布问卷</el-radio-button>
+        <el-radio-button value="mine">我发布的问卷</el-radio-button>
+      </el-radio-group>
+      <span class="qn-toolbar__tip">所有登录用户均可查看并填写活动发起者发布的问卷</span>
+    </div>
+
+    <el-empty
+      v-if="!currentList.length"
+      :description="
+        activeTab === 'all' ? '暂无已发布的报名问卷' : '暂无问卷，请先在活动详情中生成报名问卷'
+      "
+    />
 
     <div v-else class="qn-grid">
-      <el-card v-for="q in list" :key="q.id" class="qn-card" shadow="hover">
+      <el-card v-for="q in currentList" :key="q.id" class="qn-card" shadow="hover">
         <div class="qn-card__cover" @click="router.push(`/questionnaires/${q.id}/fill`)">
           <el-image v-if="q.coverImage" :src="q.coverImage" fit="cover" class="qn-card__img" />
           <div v-else class="qn-card__placeholder">
@@ -161,16 +197,18 @@ onMounted(loadList)
           <div class="qn-card__meta">所属活动：{{ q.activityTitle || '-' }}</div>
           <div class="qn-card__meta">报名人数：{{ q.responseCount ?? 0 }} · {{ formatDate(q.createTime) }}</div>
           <div class="qn-card__actions">
-            <el-button link type="primary" @click="onEdit(q)">编辑/封面</el-button>
-            <el-button link type="primary" @click="router.push(`/questionnaires/${q.id}/fill`)">填写页</el-button>
-            <el-button v-if="q.status !== 1" link type="success" @click="onPublish(q)">发布</el-button>
-            <el-button v-if="q.status === 1" link type="danger" @click="onClose(q)">截止</el-button>
+            <el-button link type="primary" @click="router.push(`/questionnaires/${q.id}/fill`)">填写</el-button>
+            <template v-if="activeTab === 'mine'">
+              <el-button link type="primary" @click="onEdit(q)">编辑/封面</el-button>
+              <el-button v-if="q.status !== 1" link type="success" @click="onPublish(q)">发布</el-button>
+              <el-button v-if="q.status === 1" link type="danger" @click="onClose(q)">截止</el-button>
+            </template>
           </div>
         </div>
       </el-card>
     </div>
 
-    <div v-if="total > 0" class="list-pagination">
+    <div v-if="activeTab === 'mine' && total > 0" class="list-pagination">
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="size"
@@ -178,6 +216,16 @@ onMounted(loadList)
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
         @change="loadList"
+      />
+    </div>
+    <div v-if="activeTab === 'all' && publishedTotal > 0" class="list-pagination">
+      <el-pagination
+        v-model:current-page="publishedPage"
+        v-model:page-size="size"
+        :total="publishedTotal"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @change="loadPublished"
       />
     </div>
 
@@ -229,6 +277,18 @@ onMounted(loadList)
 </template>
 
 <style scoped lang="scss">
+.qn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  &__tip {
+    color: #909399;
+    font-size: 12px;
+  }
+}
+
 .qn-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

@@ -48,6 +48,11 @@ public interface QuestionnaireService extends IService<Questionnaire> {
     PageVO<QuestionnaireVO> listMine(PageQuery query);
 
     /**
+     * 分页查询全部已发布的报名问卷（所有登录用户均可查看与填写）
+     */
+    PageVO<QuestionnaireVO> listPublished(PageQuery query);
+
+    /**
      * 按 ID 获取问卷详情（填写页用，登录即可）
      */
     QuestionnaireVO detail(Long id);

@@ -27,6 +27,11 @@ export function listMyQuestionnaires(params: PageQuery = {}) {
   return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/mine', method: 'GET', params })
 }
 
+/** 分页获取全部已发布问卷（所有登录用户可看可填） */
+export function listPublishedQuestionnaires(params: PageQuery = {}) {
+  return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/published', method: 'GET', params })
+}
+
 /** 问卷详情（填写页） */
 export function getQuestionnaireById(id: string) {
   return request<QuestionnaireVO>({ url: `/questionnaires/${id}`, method: 'GET' })

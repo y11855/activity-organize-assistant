@@ -83,6 +83,12 @@ public class QuestionnaireController {
         return Result.success(questionnaireService.listMine(query));
     }
 
+    @Operation(summary = "分页获取全部已发布问卷（所有登录用户可查看与填写）")
+    @GetMapping("/published")
+    public Result<PageVO<QuestionnaireVO>> listPublished(PageQuery query) {
+        return Result.success(questionnaireService.listPublished(query));
+    }
+
     @Operation(summary = "按 ID 获取问卷详情（填写页）")
     @GetMapping("/{id}")
     public Result<QuestionnaireVO> detail(@PathVariable Long id) {

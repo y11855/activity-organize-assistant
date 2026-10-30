@@ -172,7 +172,9 @@ async function runSmallTask(task: UploadTask) {
 
 async function runChunkTask(task: UploadTask, uploadId?: string) {
   task.status = 'uploading'
-  task.tip = '正在准备分片...'
+  task.tip = uploadId
+    ? `正在续传，已传 ${task.uploadedChunks ?? 0}/${task.totalChunks ?? 0} 片...`
+    : '正在准备分片...'
   const controller = new AbortController()
   task.controller = controller
   try {
@@ -303,7 +305,8 @@ async function loadPendingSessions() {
       alive.push({
         uploadId: status.uploadId,
         fileName: status.fileName,
-        fileSize: status.fileSize,
+        // 后端 Long 统一序列化为字符串，这里转回数字，否则续传时 file.size 严格比较会不相等
+        fileSize: Number(status.fileSize),
         totalChunks: status.totalChunks,
         uploaded: status.uploadedChunks.length
       })
@@ -335,14 +338,18 @@ function onResumePicked(event: Event) {
   }
   pendingSessions.value = pendingSessions.value.filter((item) => item.uploadId !== target.uploadId)
   removeSession(target.uploadId)
+  // 续传任务直接从上次进度起算，避免进度条先归零再跳回
+  const resumedPercent = target.totalChunks
+    ? Math.round((target.uploaded / target.totalChunks) * 100)
+    : 0
   const task: UploadTask = reactive({
     key: `${file.name}-${file.size}-${Date.now()}`,
     name: file.name,
     size: file.size,
-    percent: 0,
+    percent: resumedPercent,
     status: 'uploading',
-    tip: '正在续传...',
-    chunkText: '',
+    tip: `正在续传，已传 ${target.uploaded}/${target.totalChunks} 片...`,
+    chunkText: `${target.uploaded}/${target.totalChunks} 片`,
     chunked: true,
     file,
     uploadId: target.uploadId,

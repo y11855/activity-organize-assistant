@@ -56,7 +56,12 @@ export async function uploadChunked(file: File, options: ChunkUploadOptions): Pr
   let status: ChunkStatusVO
   if (options.uploadId) {
     status = await getChunkStatus(options.uploadId)
-    init = { uploadId: status.uploadId, chunkSize: status.chunkSize, totalChunks: status.totalChunks }
+    init = {
+      uploadId: status.uploadId,
+      // 后端 Long 序列化为字符串，转成数字后再参与分片计算
+      chunkSize: Number(status.chunkSize),
+      totalChunks: status.totalChunks
+    }
   } else {
     init = await initChunkUpload({
       activityId: options.activityId,
@@ -64,6 +69,7 @@ export async function uploadChunked(file: File, options: ChunkUploadOptions): Pr
       fileSize: file.size,
       description: options.description
     })
+    init = { ...init, chunkSize: Number(init.chunkSize) }
     status = await getChunkStatus(init.uploadId)
   }
   options.onInit?.(init)
