@@ -381,7 +381,10 @@ function beginDownload(key: string, url: string, name: string) {
   if (downloads[key]?.done) {
     delete downloads[key]
   }
-  const state = (downloads[key] ??= { percent: 0, loaded: 0, total: 0, paused: false, done: false })
+  // 注意：??= 返回的是赋进去的原始对象；必须再从 reactive 容器取一次，拿到代理对象，
+  // 否则后续 percent/loaded 的更新不会触发视图刷新，进度条只会停在 0。
+  downloads[key] ??= { percent: 0, loaded: 0, total: 0, paused: false, done: false }
+  const state = downloads[key]
   if (!state.instance) {
     state.instance = new ResumableDownload(url, name, (loaded, total) => {
       state.loaded = loaded
