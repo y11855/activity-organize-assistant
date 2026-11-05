@@ -415,8 +415,10 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         Long currentUserId = UserContext.getCurrentUserId();
+        // 活动负责人（拥有 activity:manage）可全局管理，需能进入任意活动详情
         if (currentUserId.equals(activity.getCreatorId())
-                || parseMemberIds(activity.getMemberIds()).contains(currentUserId)) {
+                || parseMemberIds(activity.getMemberIds()).contains(currentUserId)
+                || UserContext.hasPermission("activity:manage")) {
             return;
         }
         throw new BusinessException(ResultCode.FORBIDDEN, "你不是该活动的参与成员，无权访问");
@@ -433,14 +435,21 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
 
     @Override
     public void checkOwnership(Long activityId) {
+        checkManage(activityId, "activity:manage");
+    }
+
+    @Override
+    public void checkManage(Long activityId, String permissionCode) {
         Activity activity = getById(activityId);
         if (activity == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         Long currentUserId = UserContext.getCurrentUserId();
-        if (!currentUserId.equals(activity.getCreatorId())) {
-            throw new BusinessException(ResultCode.ACTIVITY_NOT_OWNED);
+        // 活动创建人天然可管理；其余用户按 RBAC 管理权限判断
+        if (currentUserId.equals(activity.getCreatorId()) || UserContext.hasPermission(permissionCode)) {
+            return;
         }
+        throw new BusinessException(ResultCode.FORBIDDEN, "你不是该活动的负责人，无权管理");
     }
 
     @Override

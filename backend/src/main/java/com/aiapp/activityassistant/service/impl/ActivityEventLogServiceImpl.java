@@ -33,7 +33,7 @@ public class ActivityEventLogServiceImpl implements ActivityEventLogService {
 
     @Override
     public Long add(Long activityId, ActivityEventLogSaveDTO dto) {
-        activityService.checkOwnership(activityId);
+        activityService.checkManage(activityId, "activity:manage");
         ActivityEventLog log = new ActivityEventLog();
         BeanUtils.copyProperties(dto, log);
         log.setActivityId(activityId);
@@ -47,7 +47,8 @@ public class ActivityEventLogServiceImpl implements ActivityEventLogService {
 
     @Override
     public List<ActivityEventLogVO> listByActivity(Long activityId, Integer eventType) {
-        activityService.checkOwnership(activityId);
+        // 事件记录属于活动详情的一部分，参与成员可查看
+        activityService.checkAccess(activityId);
         LambdaQueryWrapper<ActivityEventLog> qw = new LambdaQueryWrapper<ActivityEventLog>()
                 .eq(ActivityEventLog::getActivityId, activityId)
                 .orderByDesc(ActivityEventLog::getOccurredAt);
@@ -76,7 +77,7 @@ public class ActivityEventLogServiceImpl implements ActivityEventLogService {
 
     @Override
     public void delete(Long activityId, Long id) {
-        activityService.checkOwnership(activityId);
+        activityService.checkManage(activityId, "activity:manage");
         ActivityEventLog log = eventLogMapper.selectById(id);
         if (log == null || !log.getActivityId().equals(activityId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);

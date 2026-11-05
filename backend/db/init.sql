@@ -92,12 +92,19 @@ INSERT INTO `permission` (`id`, `code`, `name`, `group_name`, `sort`, `create_ti
 (5, 'system:user:view',     '用户管理', '系统管理', 10, NOW(), NOW(), 0),
 (6, 'system:user:manage',   '用户管理操作', '系统管理', 20, NOW(), NOW(), 0),
 (7, 'system:role:view',     '角色权限', '系统管理', 30, NOW(), NOW(), 0),
-(8, 'system:role:manage',   '角色权限操作', '系统管理', 40, NOW(), NOW(), 0);
+(8, 'system:role:manage',   '角色权限操作', '系统管理', 40, NOW(), NOW(), 0),
+(9, 'activity:manage',      '活动管理操作', '活动管理', 15, NOW(), NOW(), 0),
+(10, 'task:manage',         '任务分工操作', '活动管理', 25, NOW(), NOW(), 0),
+(11, 'questionnaire:manage','报名问卷操作', '活动管理', 35, NOW(), NOW(), 0),
+(12, 'reminder:manage',     '定时提醒操作', '活动管理', 45, NOW(), NOW(), 0),
+(13, 'file:manage',         '活动文件管理', '活动管理', 50, NOW(), NOW(), 0);
 
--- RBAC 种子数据：admin 全集，leader/member 业务菜单
+-- RBAC 种子数据：admin 全集；leader 业务查看 + 业务管理；member 仅业务查看
 INSERT INTO `role_permission` (`role_id`, `permission_id`) VALUES
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+(1, 9), (1, 10), (1, 11), (1, 12), (1, 13),
 (2, 1), (2, 2), (2, 3), (2, 4),
+(2, 9), (2, 10), (2, 11), (2, 12), (2, 13),
 (3, 1), (3, 2), (3, 3), (3, 4);
 
 -- ----------------------------------------------------------------------

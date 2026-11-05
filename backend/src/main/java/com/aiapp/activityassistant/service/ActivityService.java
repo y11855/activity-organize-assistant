@@ -82,6 +82,13 @@ public interface ActivityService extends IService<Activity> {
     void checkOwnership(Long activityId);
 
     /**
+     * 校验当前用户是否可管理该活动：创建人，或拥有指定管理权限（RBAC）
+     *
+     * @param permissionCode 管理类权限编码，如 activity:manage / task:manage
+     */
+    void checkManage(Long activityId, String permissionCode);
+
+    /**
      * 清除活动详情缓存（活动/子资源发生变更后调用）
      */
     void evictDetailCache(Long activityId);

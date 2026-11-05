@@ -38,7 +38,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
 
     @Override
     public Long create(ReminderCreateDTO dto) {
-        activityService.checkOwnership(dto.getActivityId());
+        activityService.checkManage(dto.getActivityId(), "reminder:manage");
         Reminder reminder = new Reminder();
         BeanUtils.copyProperties(dto, reminder);
         reminder.setStatus(0);
@@ -61,7 +61,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         // 权限校验：只能取消自己活动的提醒
-        activityService.checkOwnership(reminder.getActivityId());
+        activityService.checkManage(reminder.getActivityId(), "reminder:manage");
         if (reminder.getStatus() != 0) {
             throw new BusinessException(ResultCode.REMINDER_ALREADY_CANCELLED);
         }
@@ -72,7 +72,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
 
     @Override
     public List<ReminderVO> listByActivity(Long activityId) {
-        activityService.checkOwnership(activityId);
+        activityService.checkAccess(activityId);
         List<Reminder> list = list(new LambdaQueryWrapper<Reminder>()
                 .eq(Reminder::getActivityId, activityId)
                 .orderByAsc(Reminder::getTriggerTime));

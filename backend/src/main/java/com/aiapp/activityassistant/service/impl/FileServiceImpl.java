@@ -328,8 +328,10 @@ public class FileServiceImpl implements FileService {
         ActivityFile file = requireFile(id);
         Long currentUserId = UserContext.getCurrentUserId();
         Long creatorId = creatorIdOf(file.getActivityId());
-        // 权限边界：创建者可删任意文件，普通成员只能删自己上传的
-        if (!currentUserId.equals(creatorId) && !currentUserId.equals(file.getUploaderId())) {
+        // 权限边界：创建者与拥有 file:manage 的负责人可删任意文件，普通成员只能删自己上传的
+        if (!currentUserId.equals(creatorId)
+                && !UserContext.hasPermission("file:manage")
+                && !currentUserId.equals(file.getUploaderId())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "普通成员只能删除自己上传的文件");
         }
         try {
@@ -494,7 +496,9 @@ public class FileServiceImpl implements FileService {
         vo.setUploaderName(uploaderName);
         vo.setUrl(urlOf(file.getStoragePath()));
         Long currentUserId = UserContext.getCurrentUserId();
-        vo.setCanDelete(currentUserId.equals(creatorId) || currentUserId.equals(file.getUploaderId()));
+        vo.setCanDelete(currentUserId.equals(creatorId)
+                || UserContext.hasPermission("file:manage")
+                || currentUserId.equals(file.getUploaderId()));
         return vo;
     }
 

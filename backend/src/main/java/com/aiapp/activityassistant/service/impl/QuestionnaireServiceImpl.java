@@ -49,7 +49,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
 
     @Override
     public Long generate(Long activityId) {
-        activityService.checkOwnership(activityId);
+        activityService.checkManage(activityId, "questionnaire:manage");
         // 若已存在则直接返回
         Questionnaire existing = getOne(new LambdaQueryWrapper<Questionnaire>()
                 .eq(Questionnaire::getActivityId, activityId));
@@ -71,6 +71,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
     public void publish(Long id) {
         Questionnaire q = getById(id);
         if (q != null) {
+            activityService.checkManage(q.getActivityId(), "questionnaire:manage");
             q.setStatus(1);
             updateById(q);
         }
@@ -80,6 +81,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
     public void close(Long id) {
         Questionnaire q = getById(id);
         if (q != null) {
+            activityService.checkManage(q.getActivityId(), "questionnaire:manage");
             q.setStatus(2);
             updateById(q);
         }
@@ -87,6 +89,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
 
     @Override
     public List<QuestionnaireVO> listByActivity(Long activityId) {
+        activityService.checkAccess(activityId);
         List<Questionnaire> list = list(new LambdaQueryWrapper<Questionnaire>()
                 .eq(Questionnaire::getActivityId, activityId));
         return list.stream().map(q -> {
@@ -103,7 +106,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         // 仅活动创建人可编辑问卷
-        activityService.checkOwnership(q.getActivityId());
+        activityService.checkManage(q.getActivityId(), "questionnaire:manage");
         q.setTitle(dto.getTitle());
         q.setDescription(dto.getDescription());
         q.setCoverImage(dto.getCoverImage());
@@ -230,7 +233,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         if (q == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        activityService.checkOwnership(q.getActivityId());
+        activityService.checkManage(q.getActivityId(), "questionnaire:manage");
         LambdaQueryWrapper<QuestionnaireResponse> qw = new LambdaQueryWrapper<QuestionnaireResponse>()
                 .eq(QuestionnaireResponse::getQuestionnaireId, questionnaireId)
                 .orderByDesc(QuestionnaireResponse::getSubmitTime);
@@ -255,7 +258,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         if (q == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        activityService.checkOwnership(q.getActivityId());
+        activityService.checkManage(q.getActivityId(), "questionnaire:manage");
 
         List<QuestionnaireResponse> all = responseMapper.selectList(
                 new LambdaQueryWrapper<QuestionnaireResponse>()
@@ -291,7 +294,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         if (q == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        activityService.checkOwnership(q.getActivityId());
+        activityService.checkManage(q.getActivityId(), "questionnaire:manage");
         List<QuestionnaireResponse> all = responseMapper.selectList(
                 new LambdaQueryWrapper<QuestionnaireResponse>()
                         .eq(QuestionnaireResponse::getQuestionnaireId, questionnaireId)

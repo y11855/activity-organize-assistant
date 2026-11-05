@@ -45,7 +45,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskAssignmentMapper, TaskAssig
 
     @Override
     public Long assign(TaskAssignDTO dto) {
-        activityService.checkOwnership(dto.getActivityId());
+        activityService.checkManage(dto.getActivityId(), "task:manage");
         TaskAssignment task = new TaskAssignment();
         BeanUtils.copyProperties(dto, task);
         task.setStatus(0);
@@ -58,7 +58,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskAssignmentMapper, TaskAssig
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchAssign(Long activityId, List<TaskAssignDTO> tasks) {
-        activityService.checkOwnership(activityId);
+        activityService.checkManage(activityId, "task:manage");
         for (TaskAssignDTO dto : tasks) {
             dto.setActivityId(activityId);
             TaskAssignment task = new TaskAssignment();

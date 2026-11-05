@@ -47,9 +47,11 @@ const publishing = ref(false)
 const savingDraft = ref(false)
 const generating = ref(false)
 
-/** 当前用户是否为活动创建者：决定编辑/发布等入口是否可见 */
+/** 当前用户是否可管理活动：创建者，或拥有 activity:manage 权限的活动负责人 */
 const isCreator = computed(
-  () => String(detail.value?.creatorId ?? '') === String(userStore.userInfo?.id ?? '')
+  () =>
+    String(detail.value?.creatorId ?? '') === String(userStore.userInfo?.id ?? '') ||
+    userStore.hasPermission('activity:manage')
 )
 
 /** AI 生成内容草稿（待确认状态下的预览/编辑数据） */
