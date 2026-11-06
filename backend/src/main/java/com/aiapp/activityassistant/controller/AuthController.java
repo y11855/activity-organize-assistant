@@ -2,9 +2,11 @@ package com.aiapp.activityassistant.controller;
 
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.result.Result;
+import com.aiapp.activityassistant.dto.LoginByCodeDTO;
 import com.aiapp.activityassistant.dto.LoginDTO;
 import com.aiapp.activityassistant.dto.RegisterDTO;
 import com.aiapp.activityassistant.service.AuthService;
+import com.aiapp.activityassistant.service.CaptchaService;
 import com.aiapp.activityassistant.service.LoginCryptoService;
 import com.aiapp.activityassistant.vo.LoginVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final LoginCryptoService loginCryptoService;
+    private final CaptchaService captchaService;
 
     @Operation(summary = "获取登录密码加密公钥")
     @GetMapping("/public-key")
@@ -38,10 +41,29 @@ public class AuthController {
         return Result.success(Map.of("publicKey", loginCryptoService.getPublicKey()));
     }
 
-    @Operation(summary = "登录")
+    @Operation(summary = "获取图形验证码")
+    @GetMapping("/captcha")
+    public Result<CaptchaService.CaptchaVO> captcha() {
+        return Result.success(captchaService.generateImageCaptcha());
+    }
+
+    @Operation(summary = "发送短信验证码（演示：直接返回明文）")
+    @PostMapping("/send-code")
+    public Result<Map<String, String>> sendCode(@RequestBody Map<String, String> body) {
+        String code = captchaService.sendSmsCode(body.get("username"));
+        return Result.success(Map.of("code", code));
+    }
+
+    @Operation(summary = "密码登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
         return Result.success(authService.login(dto));
+    }
+
+    @Operation(summary = "验证码登录")
+    @PostMapping("/login-by-code")
+    public Result<LoginVO> loginByCode(@Valid @RequestBody LoginByCodeDTO dto) {
+        return Result.success(authService.loginByCode(dto));
     }
 
     @Operation(summary = "注册")

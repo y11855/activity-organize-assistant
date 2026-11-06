@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.service;
 import cn.hutool.crypto.digest.BCrypt;
 import com.aiapp.activityassistant.common.exception.BusinessException;
 import com.aiapp.activityassistant.common.result.ResultCode;
+import com.aiapp.activityassistant.dto.LoginByCodeDTO;
 import com.aiapp.activityassistant.dto.LoginDTO;
 import com.aiapp.activityassistant.dto.RegisterDTO;
 import com.aiapp.activityassistant.entity.User;
@@ -27,16 +28,34 @@ public class AuthService {
     private final LoginCryptoService loginCryptoService;
     private final TokenService tokenService;
     private final RbacService rbacService;
+    private final CaptchaService captchaService;
 
     /**
-     * 登录：解密前端传来的密码密文 → 校验用户名密码 → 签发 token
+     * 密码登录：先校验图形验证码 → 解密前端传来的密码密文 → 校验用户名密码 → 签发 token
      */
     public LoginVO login(LoginDTO dto) {
+        // 图形验证码防暴力破解，校验后即失效
+        captchaService.verifyImageCaptcha(dto.getCaptchaKey(), dto.getCaptchaCode());
         // 前端用 RSA 公钥加密密码，这里先解密还原明文，再交给 BCrypt 校验
         String rawPassword = loginCryptoService.decrypt(dto.getPassword());
         User user = userService.getByUsername(dto.getUsername());
         if (user == null || !BCrypt.checkpw(rawPassword, user.getPassword())) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "用户名或密码错误");
+        }
+        if (Objects.equals(0, user.getStatus())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
+        }
+        return issueToken(user);
+    }
+
+    /**
+     * 验证码登录：校验短信验证码 → 查用户 → 签发 token（无需密码）
+     */
+    public LoginVO loginByCode(LoginByCodeDTO dto) {
+        captchaService.verifySmsCode(dto.getUsername(), dto.getCode());
+        User user = userService.getByUsername(dto.getUsername());
+        if (user == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "用户不存在");
         }
         if (Objects.equals(0, user.getStatus())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");

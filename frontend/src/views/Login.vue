@@ -1,46 +1,113 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
-import { login } from '@/api/auth'
+import { login, loginByCode, getCaptcha, sendCode } from '@/api/auth'
 import { debounce } from '@/utils'
 import { encryptPassword } from '@/utils/loginCrypto'
 
 const router = useRouter()
 const userStore = useUserStore()
-const form = ref({ username: '', password: '' })
+
+// 登录方式：password 密码登录 | code 验证码登录
+const loginMode = ref<'password' | 'code'>('password')
 const loading = ref(false)
 
-const onLogin = debounce(async () => {
-  if (!form.value.username || !form.value.password) {
-    ElMessage.warning('请输入用户名和密码')
+// 密码登录表单
+const pwdForm = ref({ username: '', password: '', captchaCode: '' })
+const captchaKey = ref('')
+const captchaImg = ref('')
+
+// 验证码登录表单
+const codeForm = ref({ username: '', code: '' })
+const countdown = ref(0)
+
+// 加载图形验证码
+const loadCaptcha = async () => {
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.key
+    captchaImg.value = res.imageBase64
+  } catch {
+    ElMessage.error('验证码加载失败')
+  }
+}
+
+// 发送短信验证码（演示：直接显示返回的码）
+const onSendCode = debounce(async () => {
+  if (!codeForm.value.username) {
+    ElMessage.warning('请输入用户名')
     return
   }
+  if (countdown.value > 0) return
+  try {
+    const res = await sendCode(codeForm.value.username)
+    ElMessage.success(`验证码已发送（演示）：${res.code}`)
+    countdown.value = 60
+    const timer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) clearInterval(timer)
+    }, 1000)
+  } catch {
+    // 拦截器统一提示
+  }
+}, 500)
 
+// 密码登录
+const onPwdLogin = debounce(async () => {
+  if (!pwdForm.value.username || !pwdForm.value.password || !pwdForm.value.captchaCode) {
+    ElMessage.warning('请输入用户名、密码和验证码')
+    return
+  }
   if (loading.value) return
-
   loading.value = true
   let encryptedPassword: string
   try {
-    // 密码先在前端用 RSA 公钥加密，请求体中不再出现明文
-    encryptedPassword = await encryptPassword(form.value.password)
+    encryptedPassword = await encryptPassword(pwdForm.value.password)
   } catch {
     ElMessage.error('密码加密失败，请刷新页面后重试')
     loading.value = false
     return
   }
   try {
-    const res = await login({ username: form.value.username, password: encryptedPassword })
+    const res = await login({
+      username: pwdForm.value.username,
+      password: encryptedPassword,
+      captchaKey: captchaKey.value,
+      captchaCode: pwdForm.value.captchaCode
+    })
     userStore.setLoginInfo(res)
     ElMessage.success(`欢迎，${res.nickname || res.username}`)
     router.push('/activities')
   } catch {
-    // 错误提示已在拦截器统一弹出
+    loadCaptcha() // 登录失败刷新验证码
   } finally {
     loading.value = false
   }
 }, 500)
+
+// 验证码登录
+const onCodeLogin = debounce(async () => {
+  if (!codeForm.value.username || !codeForm.value.code) {
+    ElMessage.warning('请输入用户名和验证码')
+    return
+  }
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await loginByCode({ username: codeForm.value.username, code: codeForm.value.code })
+    userStore.setLoginInfo(res)
+    ElMessage.success(`欢迎，${res.nickname || res.username}`)
+    router.push('/activities')
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    loading.value = false
+  }
+}, 500)
+
+onMounted(loadCaptcha)
 </script>
 
 <template>
@@ -48,19 +115,49 @@ const onLogin = debounce(async () => {
     <div class="login__panel">
       <h1 class="login__title">活动管家</h1>
       <p class="login__subtitle">社团活动组织与协作</p>
-      <el-form :model="form" label-width="72px" @keyup.enter="onLogin">
+
+      <el-tabs v-model="loginMode" class="login__tabs">
+        <el-tab-pane label="密码登录" name="password" />
+        <el-tab-pane label="验证码登录" name="code" />
+      </el-tabs>
+
+      <!-- 密码登录 -->
+      <el-form v-show="loginMode === 'password'" :model="pwdForm" label-width="72px" @keyup.enter="onPwdLogin">
         <el-form-item label="用户名">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+          <el-input v-model="pwdForm.username" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
+          <el-input v-model="pwdForm.password" type="password" placeholder="请输入密码" show-password />
+        </el-form-item>
+        <el-form-item label="验证码">
+          <div class="login__captcha">
+            <el-input v-model="pwdForm.captchaCode" placeholder="请输入验证码" />
+            <img :src="captchaImg" class="login__captcha-img" @click="loadCaptcha" title="点击刷新" />
+          </div>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" class="login__submit" :loading="loading" @click="onLogin">
-            登录
-          </el-button>
+          <el-button type="primary" class="login__submit" :loading="loading" @click="onPwdLogin">登录</el-button>
         </el-form-item>
       </el-form>
+
+      <!-- 验证码登录 -->
+      <el-form v-show="loginMode === 'code'" :model="codeForm" label-width="72px" @keyup.enter="onCodeLogin">
+        <el-form-item label="用户名">
+          <el-input v-model="codeForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="验证码">
+          <div class="login__captcha">
+            <el-input v-model="codeForm.code" placeholder="请输入6位验证码" />
+            <el-button type="primary" plain :disabled="countdown > 0" @click="onSendCode">
+              {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" class="login__submit" :loading="loading" @click="onCodeLogin">登录</el-button>
+        </el-form-item>
+      </el-form>
+
       <div class="login__extra">
         <el-button link type="primary" @click="router.push('/register')">没有账号？注册</el-button>
       </div>
@@ -77,7 +174,7 @@ const onLogin = debounce(async () => {
   background: #f6f7f9;
 
   &__panel {
-    width: 360px;
+    width: 380px;
     padding: 36px 32px 24px;
     background: #fff;
     border: 1px solid #ebeef5;
@@ -95,10 +192,37 @@ const onLogin = debounce(async () => {
   }
 
   &__subtitle {
-    margin: 8px 0 28px;
+    margin: 8px 0 20px;
     text-align: center;
     font-size: 13px;
     color: #909399;
+  }
+
+  &__tabs {
+    :deep(.el-tabs__nav) {
+      width: 100%;
+    }
+    :deep(.el-tabs__item) {
+      width: 50%;
+      text-align: center;
+    }
+  }
+
+  &__captcha {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    .el-input {
+      flex: 1;
+    }
+  }
+
+  &__captcha-img {
+    width: 110px;
+    height: 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #dcdfe6;
   }
 
   &__submit {
