@@ -33,8 +33,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/auth/register",
                         "/auth/public-key",
                         "/auth/captcha",
-                        "/auth/send-code",
-                        "/auth/login-by-code",
+                        "/auth/email-code",
+                        "/auth/login-by-email-code",
                         "/uploads/**",
                         // Knife4j / OpenAPI 文档
                         "/doc.html", "/v3/api-docs/**", "/swagger-resources/**",

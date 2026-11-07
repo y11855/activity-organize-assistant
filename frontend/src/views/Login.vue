@@ -3,15 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
-import { login, loginByCode, getCaptcha, sendCode } from '@/api/auth'
+import { login, loginByEmailCode, getCaptcha, sendEmailCode } from '@/api/auth'
 import { debounce } from '@/utils'
 import { encryptPassword } from '@/utils/loginCrypto'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-// 登录方式：password 密码登录 | code 验证码登录
-const loginMode = ref<'password' | 'code'>('password')
+// 登录方式：password 密码登录 | email 邮箱验证码登录
+const loginMode = ref<'password' | 'email'>('password')
 const loading = ref(false)
 
 // 密码登录表单
@@ -19,8 +19,8 @@ const pwdForm = ref({ username: '', password: '', captchaCode: '' })
 const captchaKey = ref('')
 const captchaImg = ref('')
 
-// 验证码登录表单
-const codeForm = ref({ username: '', code: '' })
+// 邮箱验证码登录表单
+const codeForm = ref({ email: '', code: '' })
 const countdown = ref(0)
 
 // 加载图形验证码
@@ -34,16 +34,16 @@ const loadCaptcha = async () => {
   }
 }
 
-// 发送短信验证码（演示：直接显示返回的码）
+// 发送邮箱验证码
 const onSendCode = debounce(async () => {
-  if (!codeForm.value.username) {
-    ElMessage.warning('请输入用户名')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(codeForm.value.email)) {
+    ElMessage.warning('请输入正确的邮箱')
     return
   }
   if (countdown.value > 0) return
   try {
-    const res = await sendCode(codeForm.value.username)
-    ElMessage.success(`验证码已发送（演示）：${res.code}`)
+    await sendEmailCode(codeForm.value.email)
+    ElMessage.success('验证码已发送，请查收邮箱')
     countdown.value = 60
     const timer = setInterval(() => {
       countdown.value--
@@ -87,16 +87,16 @@ const onPwdLogin = debounce(async () => {
   }
 }, 500)
 
-// 验证码登录
+// 邮箱验证码登录
 const onCodeLogin = debounce(async () => {
-  if (!codeForm.value.username || !codeForm.value.code) {
-    ElMessage.warning('请输入用户名和验证码')
+  if (!codeForm.value.email || !codeForm.value.code) {
+    ElMessage.warning('请输入邮箱和验证码')
     return
   }
   if (loading.value) return
   loading.value = true
   try {
-    const res = await loginByCode({ username: codeForm.value.username, code: codeForm.value.code })
+    const res = await loginByEmailCode({ email: codeForm.value.email, code: codeForm.value.code })
     userStore.setLoginInfo(res)
     ElMessage.success(`欢迎，${res.nickname || res.username}`)
     router.push('/activities')
@@ -118,7 +118,7 @@ onMounted(loadCaptcha)
 
       <el-tabs v-model="loginMode" class="login__tabs">
         <el-tab-pane label="密码登录" name="password" />
-        <el-tab-pane label="验证码登录" name="code" />
+        <el-tab-pane label="邮箱验证码登录" name="email" />
       </el-tabs>
 
       <!-- 密码登录 -->
@@ -140,10 +140,10 @@ onMounted(loadCaptcha)
         </el-form-item>
       </el-form>
 
-      <!-- 验证码登录 -->
-      <el-form v-show="loginMode === 'code'" :model="codeForm" label-width="72px" @keyup.enter="onCodeLogin">
-        <el-form-item label="用户名">
-          <el-input v-model="codeForm.username" placeholder="请输入用户名" />
+      <!-- 邮箱验证码登录 -->
+      <el-form v-show="loginMode === 'email'" :model="codeForm" label-width="72px" @keyup.enter="onCodeLogin">
+        <el-form-item label="邮箱">
+          <el-input v-model="codeForm.email" placeholder="请输入已绑定的邮箱" />
         </el-form-item>
         <el-form-item label="验证码">
           <div class="login__captcha">
@@ -156,6 +156,7 @@ onMounted(loadCaptcha)
         <el-form-item>
           <el-button type="primary" class="login__submit" :loading="loading" @click="onCodeLogin">登录</el-button>
         </el-form-item>
+        <div class="login__tip">首次使用请先用密码登录，并在右上角头像菜单中绑定邮箱</div>
       </el-form>
 
       <div class="login__extra">
@@ -233,6 +234,14 @@ onMounted(loadCaptcha)
     display: flex;
     justify-content: center;
     margin-top: 4px;
+  }
+
+  &__tip {
+    margin: -8px 0 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #909399;
+    text-align: center;
   }
 }
 </style>

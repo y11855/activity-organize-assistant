@@ -24,6 +24,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public User getByEmail(String email) {
+        return getOne(new LambdaQueryWrapper<User>()
+                .eq(User::getEmail, email)
+                .last("LIMIT 1"));
+    }
+
+    @Override
     public List<UserSimpleVO> listAll() {
         // 仅返回启用账号，禁用账号不再出现在成员选择器
         return list(new LambdaQueryWrapper<User>()

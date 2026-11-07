@@ -9,7 +9,7 @@ import { encryptPassword } from '@/utils/loginCrypto'
 
 const router = useRouter()
 const userStore = useUserStore()
-const form = ref({ username: '', password: '', confirmPassword: '', nickname: '' })
+const form = ref({ username: '', password: '', confirmPassword: '', nickname: '', email: '' })
 const loading = ref(false)
 
 const onRegister = debounce(async () => {
@@ -23,6 +23,10 @@ const onRegister = debounce(async () => {
   }
   if (form.value.password !== form.value.confirmPassword) {
     ElMessage.warning('两次输入的密码不一致')
+    return
+  }
+  if (form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
+    ElMessage.warning('邮箱格式不正确')
     return
   }
   if (loading.value) return
@@ -41,7 +45,8 @@ const onRegister = debounce(async () => {
     const res = await register({
       username: form.value.username,
       password: encryptedPassword,
-      nickname: form.value.nickname || undefined
+      nickname: form.value.nickname || undefined,
+      email: form.value.email || undefined
     })
     userStore.setLoginInfo(res)
     ElMessage.success('注册成功')
@@ -76,6 +81,9 @@ const onRegister = debounce(async () => {
             placeholder="请再次输入密码"
             show-password
           />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="form.email" placeholder="选填，用于邮箱验证码登录" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" class="register__submit" :loading="loading" @click="onRegister">

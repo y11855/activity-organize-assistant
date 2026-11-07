@@ -8,3 +8,10 @@ $env:JASYPT_ENCRYPTOR_PASSWORD = "change-me"
 # DashScope（通义千问）API Key，申请地址：https://dashscope.console.aliyun.com/apiKey
 # 不配置时 AI 编排自动走兜底假数据，不影响其他功能启动
 $env:DASHSCOPE_API_KEY = "sk-xxxxxxxx"
+
+# 邮箱验证码登录（QQ 邮箱示例）
+# 在 QQ 邮箱「设置 → 账户 → POP3/SMTP 服务」开启后获取「授权码」，password 填授权码而不是登录密码
+$env:MAIL_HOST = "smtp.qq.com"
+$env:MAIL_PORT = "465"
+$env:MAIL_USERNAME = "your-qq-mail@qq.com"
+$env:MAIL_PASSWORD = "your-smtp-auth-code"

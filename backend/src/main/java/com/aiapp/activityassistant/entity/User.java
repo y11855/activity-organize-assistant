@@ -20,6 +20,9 @@ public class User extends BaseEntity {
 
     private String nickname;
 
+    /** 邮箱（用于验证码登录，可空） */
+    private String email;
+
     /** 账号状态: 1启用 0禁用 */
     private Integer status;
 }

@@ -17,6 +17,11 @@ public interface UserService extends IService<User> {
     User getByUsername(String username);
 
     /**
+     * 按邮箱查询用户
+     */
+    User getByEmail(String email);
+
+    /**
      * 查询全部启用用户（成员选择器用，不含密码等敏感字段）
      */
     List<UserSimpleVO> listAll();

@@ -3,6 +3,8 @@ export interface UserInfo {
   id: string
   username: string
   nickname: string
+  /** 已绑定邮箱，未绑定为空 */
+  email?: string
   roles: string[]
   roleNames?: string[]
   permissions: string[]
@@ -168,6 +170,8 @@ export interface LoginVO {
   id: string
   username: string
   nickname: string
+  /** 已绑定邮箱，未绑定为空 */
+  email?: string
   roles: string[]
   roleNames: string[]
   permissions: string[]

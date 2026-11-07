@@ -2,7 +2,8 @@ package com.aiapp.activityassistant.controller;
 
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.result.Result;
-import com.aiapp.activityassistant.dto.LoginByCodeDTO;
+import com.aiapp.activityassistant.dto.EmailCodeDTO;
+import com.aiapp.activityassistant.dto.EmailLoginDTO;
 import com.aiapp.activityassistant.dto.LoginDTO;
 import com.aiapp.activityassistant.dto.RegisterDTO;
 import com.aiapp.activityassistant.service.AuthService;
@@ -47,11 +48,11 @@ public class AuthController {
         return Result.success(captchaService.generateImageCaptcha());
     }
 
-    @Operation(summary = "发送短信验证码（演示：直接返回明文）")
-    @PostMapping("/send-code")
-    public Result<Map<String, String>> sendCode(@RequestBody Map<String, String> body) {
-        String code = captchaService.sendSmsCode(body.get("username"));
-        return Result.success(Map.of("code", code));
+    @Operation(summary = "发送登录邮箱验证码")
+    @PostMapping("/email-code")
+    public Result<Void> emailCode(@Valid @RequestBody EmailCodeDTO dto) {
+        authService.sendLoginCode(dto.getEmail());
+        return Result.success();
     }
 
     @Operation(summary = "密码登录")
@@ -60,10 +61,23 @@ public class AuthController {
         return Result.success(authService.login(dto));
     }
 
-    @Operation(summary = "验证码登录")
-    @PostMapping("/login-by-code")
-    public Result<LoginVO> loginByCode(@Valid @RequestBody LoginByCodeDTO dto) {
-        return Result.success(authService.loginByCode(dto));
+    @Operation(summary = "邮箱验证码登录")
+    @PostMapping("/login-by-email-code")
+    public Result<LoginVO> loginByEmailCode(@Valid @RequestBody EmailLoginDTO dto) {
+        return Result.success(authService.loginByEmailCode(dto));
+    }
+
+    @Operation(summary = "发送绑定邮箱验证码（需登录）")
+    @PostMapping("/bind-email-code")
+    public Result<Void> bindEmailCode(@Valid @RequestBody EmailCodeDTO dto) {
+        authService.sendBindCode(UserContext.getCurrentUserId(), dto.getEmail());
+        return Result.success();
+    }
+
+    @Operation(summary = "绑定邮箱（需登录）")
+    @PostMapping("/bind-email")
+    public Result<LoginVO> bindEmail(@Valid @RequestBody EmailLoginDTO dto) {
+        return Result.success(authService.bindEmail(UserContext.getCurrentUserId(), dto));
     }
 
     @Operation(summary = "注册")

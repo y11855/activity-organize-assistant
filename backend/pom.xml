@@ -51,6 +51,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- 邮箱验证码登录：SMTP 发信 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <!-- 权限校验：仅用方法级 @PreAuthorize，认证仍走现有 Redis token 拦截器 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

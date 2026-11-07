@@ -12,6 +12,23 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 100MB
+  # 邮箱验证码登录（QQ 邮箱示例：smtp.qq.com:465 SSL，password 填邮箱授权码）
+  # 账号通过环境变量 MAIL_USERNAME / MAIL_PASSWORD 注入（见 start.local.ps1）
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 # MyBatis-Plus
 mybatis-plus:

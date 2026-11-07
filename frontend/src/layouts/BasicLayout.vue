@@ -2,8 +2,14 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores'
+import { ElMessage } from 'element-plus'
 import { listMyMessages, getUnreadCount, markMessageRead, markAllMessagesRead } from '@/api/message'
-import { logout as apiLogout, getCurrentUser } from '@/api/auth'
+import {
+  logout as apiLogout,
+  getCurrentUser,
+  bindEmail as apiBindEmail,
+  sendBindEmailCode
+} from '@/api/auth'
 import type { MessageVO } from '@/types'
 import { debounce, formatDate } from '@/utils'
 
@@ -67,12 +73,69 @@ async function refreshCurrentUser() {
       id: me.id,
       username: me.username,
       nickname: me.nickname,
+      email: me.email,
       roles: me.roles ?? [],
       roleNames: me.roleNames ?? [],
       permissions: me.permissions ?? []
     })
+    // 未绑定邮箱时每次进入系统都提醒一次，可点「稍后再说」跳过
+    if (!me.email) {
+      openBindDialog()
+    }
   } catch {
     // 静默失败：权限以本地缓存为准，接口侧仍会兜底校验
+  }
+}
+
+// ===== 绑定邮箱 =====
+const bindVisible = ref(false)
+const bindLoading = ref(false)
+const bindCountdown = ref(0)
+const bindForm = ref({ email: '', code: '' })
+
+function openBindDialog() {
+  bindForm.value = { email: '', code: '' }
+  bindCountdown.value = 0
+  bindVisible.value = true
+}
+
+async function onSendBindCode() {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindForm.value.email)) {
+    ElMessage.warning('请输入正确的邮箱')
+    return
+  }
+  if (bindCountdown.value > 0) return
+  try {
+    await sendBindEmailCode(bindForm.value.email)
+    ElMessage.success('验证码已发送，请查收邮箱')
+    bindCountdown.value = 60
+    const timer = setInterval(() => {
+      bindCountdown.value--
+      if (bindCountdown.value <= 0) clearInterval(timer)
+    }, 1000)
+  } catch {
+    // 拦截器统一提示
+  }
+}
+
+async function onSubmitBind() {
+  if (!bindForm.value.email || !bindForm.value.code) {
+    ElMessage.warning('请输入邮箱和验证码')
+    return
+  }
+  if (bindLoading.value) return
+  bindLoading.value = true
+  try {
+    const res = await apiBindEmail({ email: bindForm.value.email, code: bindForm.value.code })
+    if (userStore.userInfo) {
+      userStore.userInfo.email = res.email
+    }
+    bindVisible.value = false
+    ElMessage.success('邮箱绑定成功，下次可用邮箱验证码登录')
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    bindLoading.value = false
   }
 }
 
@@ -127,6 +190,10 @@ function onLogout() {
 function onUserCommand(command: string) {
   if (command === 'participations') {
     router.push({ name: 'my-participations' })
+    return
+  }
+  if (command === 'bindEmail') {
+    openBindDialog()
     return
   }
   if (command === 'logout') {
@@ -189,6 +256,9 @@ onUnmounted(() => {
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="participations">我的参与</el-dropdown-item>
+                <el-dropdown-item command="bindEmail">
+                  {{ userStore.userInfo?.email ? '更换绑定邮箱' : '绑定邮箱' }}
+                </el-dropdown-item>
                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -226,6 +296,27 @@ onUnmounted(() => {
       </div>
     </div>
   </el-drawer>
+
+  <el-dialog v-model="bindVisible" title="绑定邮箱" width="440px">
+    <p class="bind__tip">绑定邮箱后，下次可直接用邮箱验证码登录。也可以点「稍后再说」跳过。</p>
+    <el-form :model="bindForm" label-width="72px" @keyup.enter="onSubmitBind">
+      <el-form-item label="邮箱">
+        <el-input v-model="bindForm.email" placeholder="请输入要绑定的邮箱" />
+      </el-form-item>
+      <el-form-item label="验证码">
+        <div class="bind__code">
+          <el-input v-model="bindForm.code" placeholder="请输入6位验证码" />
+          <el-button type="primary" plain :disabled="bindCountdown > 0" @click="onSendBindCode">
+            {{ bindCountdown > 0 ? `${bindCountdown}s` : '获取验证码' }}
+          </el-button>
+        </div>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="bindVisible = false">稍后再说</el-button>
+      <el-button type="primary" :loading="bindLoading" @click="onSubmitBind">绑定</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped lang="scss">
@@ -347,6 +438,25 @@ onUnmounted(() => {
     font-size: 13px;
     white-space: pre-wrap;
     line-height: 1.6;
+  }
+}
+
+.bind {
+  &__tip {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #909399;
+  }
+
+  &__code {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+
+    .el-input {
+      flex: 1;
+    }
   }
 }
 </style>

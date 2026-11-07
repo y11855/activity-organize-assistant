@@ -24,6 +24,9 @@ public class LoginVO {
     @Schema(description = "昵称")
     private String nickname;
 
+    @Schema(description = "绑定邮箱，未绑定为空")
+    private String email;
+
     @Schema(description = "角色编码列表")
     private List<String> roles;
 

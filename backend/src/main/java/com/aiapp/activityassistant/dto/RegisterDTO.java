@@ -1,6 +1,7 @@
 package com.aiapp.activityassistant.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -25,4 +26,9 @@ public class RegisterDTO {
     @Schema(description = "昵称，缺省时使用用户名")
     @Size(max = 32, message = "昵称最长 32 个字符")
     private String nickname;
+
+    @Schema(description = "邮箱（可选，用于邮箱验证码登录；可注册后再绑定）")
+    @Email(message = "邮箱格式不正确")
+    @Size(max = 120, message = "邮箱最长 120 个字符")
+    private String email;
 }

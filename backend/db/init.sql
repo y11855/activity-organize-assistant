@@ -22,12 +22,14 @@ CREATE TABLE `user` (
   `username`    VARCHAR(64)  NOT NULL COMMENT '用户名（登录名）',
   `password`    VARCHAR(128) NOT NULL COMMENT '密码（BCrypt 加密）',
   `nickname`    VARCHAR(64)  NULL COMMENT '昵称',
+  `email`       VARCHAR(120) NULL COMMENT '邮箱（用于验证码登录）',
   `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '账号状态: 1启用 0禁用',
   `create_time` DATETIME     NULL COMMENT '创建时间',
   `update_time` DATETIME     NULL COMMENT '更新时间',
   `deleted`     TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0正常 1已删除',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_username` (`username`)
+  UNIQUE KEY `uk_username` (`username`),
+  UNIQUE KEY `uk_email` (`email`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '用户';
 
 -- ----------------------------------------------------------------------
