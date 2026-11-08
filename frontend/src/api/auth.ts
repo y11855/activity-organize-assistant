@@ -26,6 +26,16 @@ export function bindEmail(payload: { email: string; code: string }) {
   return request<LoginVO>({ url: '/auth/bind-email', method: 'POST', data: payload })
 }
 
+/** 忘记密码：发送重置验证码 */
+export function sendResetCode(email: string) {
+  return request<void>({ url: '/auth/reset-code', method: 'POST', data: { email } })
+}
+
+/** 忘记密码：通过邮箱验证码重置密码（密码为 RSA 密文） */
+export function resetPassword(payload: { email: string; code: string; password: string }) {
+  return request<void>({ url: '/auth/reset-password', method: 'POST', data: payload })
+}
+
 /** 获取图形验证码 */
 export function getCaptcha() {
   return request<{ key: string; imageBase64: string }>({ url: '/auth/captcha', method: 'GET' })

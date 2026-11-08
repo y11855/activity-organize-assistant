@@ -6,6 +6,7 @@ import com.aiapp.activityassistant.dto.EmailCodeDTO;
 import com.aiapp.activityassistant.dto.EmailLoginDTO;
 import com.aiapp.activityassistant.dto.LoginDTO;
 import com.aiapp.activityassistant.dto.RegisterDTO;
+import com.aiapp.activityassistant.dto.ResetPasswordByEmailDTO;
 import com.aiapp.activityassistant.service.AuthService;
 import com.aiapp.activityassistant.service.CaptchaService;
 import com.aiapp.activityassistant.service.LoginCryptoService;
@@ -65,6 +66,20 @@ public class AuthController {
     @PostMapping("/login-by-email-code")
     public Result<LoginVO> loginByEmailCode(@Valid @RequestBody EmailLoginDTO dto) {
         return Result.success(authService.loginByEmailCode(dto));
+    }
+
+    @Operation(summary = "忘记密码：发送重置验证码")
+    @PostMapping("/reset-code")
+    public Result<Void> resetCode(@Valid @RequestBody EmailCodeDTO dto) {
+        authService.sendResetCode(dto.getEmail());
+        return Result.success();
+    }
+
+    @Operation(summary = "忘记密码：通过邮箱验证码重置密码")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordByEmailDTO dto) {
+        authService.resetPasswordByEmailCode(dto);
+        return Result.success();
     }
 
     @Operation(summary = "发送绑定邮箱验证码（需登录）")

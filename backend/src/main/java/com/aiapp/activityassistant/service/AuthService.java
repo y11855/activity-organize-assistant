@@ -6,6 +6,7 @@ import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.EmailLoginDTO;
 import com.aiapp.activityassistant.dto.LoginDTO;
 import com.aiapp.activityassistant.dto.RegisterDTO;
+import com.aiapp.activityassistant.dto.ResetPasswordByEmailDTO;
 import com.aiapp.activityassistant.entity.User;
 import com.aiapp.activityassistant.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
@@ -117,6 +118,41 @@ public class AuthService {
         user.setEmail(email);
         userService.updateById(user);
         return buildLoginVO(user, null);
+    }
+
+    /**
+     * 忘记密码——发送重置验证码：邮箱必须已绑定账号。
+     */
+    public void sendResetCode(String email) {
+        String key = EmailCodeService.normalize(email);
+        User user = userService.getByEmail(key);
+        if (user == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，无法找回密码");
+        }
+        if (Objects.equals(0, user.getStatus())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
+        }
+        emailCodeService.sendReset(key);
+    }
+
+    /**
+     * 忘记密码——校验验证码并重置密码：密码密文解密后 BCrypt 入库，并吊销该用户全部 token。
+     */
+    public void resetPasswordByEmailCode(ResetPasswordByEmailDTO dto) {
+        String email = EmailCodeService.normalize(dto.getEmail());
+        User user = userService.getByEmail(email);
+        if (user == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，无法找回密码");
+        }
+        emailCodeService.verifyReset(email, dto.getCode());
+        String rawPassword = loginCryptoService.decrypt(dto.getPassword());
+        if (rawPassword.length() < 6 || rawPassword.length() > 20) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "密码长度需为 6-20 位");
+        }
+        user.setPassword(BCrypt.hashpw(rawPassword));
+        userService.updateById(user);
+        // 密码变更后所有已登录会话强制下线
+        tokenService.revokeAll(user.getId());
     }
 
     /**

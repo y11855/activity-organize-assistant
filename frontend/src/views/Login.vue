@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
-import { login, loginByEmailCode, getCaptcha, sendEmailCode } from '@/api/auth'
+import { login, loginByEmailCode, getCaptcha, sendEmailCode, sendResetCode, resetPassword } from '@/api/auth'
 import { debounce } from '@/utils'
 import { encryptPassword } from '@/utils/loginCrypto'
 
@@ -107,6 +107,77 @@ const onCodeLogin = debounce(async () => {
   }
 }, 500)
 
+// ===== 忘记密码 =====
+const resetVisible = ref(false)
+const resetLoading = ref(false)
+const resetCountdown = ref(0)
+const resetForm = ref({ email: '', code: '', password: '', confirmPassword: '' })
+
+function openResetDialog() {
+  resetForm.value = { email: '', code: '', password: '', confirmPassword: '' }
+  resetCountdown.value = 0
+  resetVisible.value = true
+}
+
+const onSendResetCode = debounce(async () => {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetForm.value.email)) {
+    ElMessage.warning('请输入正确的邮箱')
+    return
+  }
+  if (resetCountdown.value > 0) return
+  try {
+    await sendResetCode(resetForm.value.email)
+    ElMessage.success('验证码已发送，请查收邮箱')
+    resetCountdown.value = 60
+    const timer = setInterval(() => {
+      resetCountdown.value--
+      if (resetCountdown.value <= 0) clearInterval(timer)
+    }, 1000)
+  } catch {
+    // 拦截器统一提示
+  }
+}, 500)
+
+const onResetPassword = debounce(async () => {
+  if (!resetForm.value.email || !resetForm.value.code) {
+    ElMessage.warning('请输入邮箱和验证码')
+    return
+  }
+  if (resetForm.value.password.length < 6 || resetForm.value.password.length > 20) {
+    ElMessage.warning('密码长度需为 6-20 位')
+    return
+  }
+  if (resetForm.value.password !== resetForm.value.confirmPassword) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
+  }
+  if (resetLoading.value) return
+  resetLoading.value = true
+  let encryptedPassword: string
+  try {
+    encryptedPassword = await encryptPassword(resetForm.value.password)
+  } catch {
+    ElMessage.error('密码加密失败，请刷新页面后重试')
+    resetLoading.value = false
+    return
+  }
+  try {
+    await resetPassword({
+      email: resetForm.value.email,
+      code: resetForm.value.code,
+      password: encryptedPassword
+    })
+    resetVisible.value = false
+    ElMessage.success('密码已重置，请使用新密码登录')
+    loginMode.value = 'password'
+    loadCaptcha()
+  } catch {
+    // 拦截器统一提示
+  } finally {
+    resetLoading.value = false
+  }
+}, 500)
+
 onMounted(loadCaptcha)
 </script>
 
@@ -160,9 +231,38 @@ onMounted(loadCaptcha)
       </el-form>
 
       <div class="login__extra">
+        <el-button link type="primary" @click="openResetDialog">忘记密码？</el-button>
         <el-button link type="primary" @click="router.push('/register')">没有账号？注册</el-button>
       </div>
     </div>
+
+    <!-- 忘记密码 -->
+    <el-dialog v-model="resetVisible" title="忘记密码" width="440px">
+      <p class="reset__tip">请输入已绑定账号的邮箱，通过邮箱验证码重置密码。未绑定邮箱请联系管理员重置。</p>
+      <el-form :model="resetForm" label-width="72px" @keyup.enter="onResetPassword">
+        <el-form-item label="邮箱">
+          <el-input v-model="resetForm.email" placeholder="请输入已绑定的邮箱" />
+        </el-form-item>
+        <el-form-item label="验证码">
+          <div class="login__captcha">
+            <el-input v-model="resetForm.code" placeholder="请输入6位验证码" />
+            <el-button type="primary" plain :disabled="resetCountdown > 0" @click="onSendResetCode">
+              {{ resetCountdown > 0 ? `${resetCountdown}s` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="resetForm.password" type="password" placeholder="请输入新密码（6-20位）" show-password />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="resetForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resetVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetLoading" @click="onResetPassword">重置密码</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -232,7 +332,7 @@ onMounted(loadCaptcha)
 
   &__extra {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     margin-top: 4px;
   }
 
@@ -242,6 +342,15 @@ onMounted(loadCaptcha)
     line-height: 1.5;
     color: #909399;
     text-align: center;
+  }
+}
+
+.reset {
+  &__tip {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #909399;
   }
 }
 </style>

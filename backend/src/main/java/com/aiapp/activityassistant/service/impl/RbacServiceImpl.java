@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.service.impl;
 import cn.hutool.crypto.digest.BCrypt;
 import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.redis.RedisService;
 import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.AdminUserCreateDTO;
@@ -30,7 +31,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +52,14 @@ public class RbacServiceImpl implements RbacService {
 
     private static final String ADMIN_CODE = "admin";
 
+    /**
+     * 用户角色/权限码缓存 key。每次请求拦截器都要加载这两项，属于"不常变的资源"，
+     * 缓存 30 分钟避免每个请求都多表 JOIN 查库；授权变更时主动失效对应用户的缓存。
+     */
+    private static final String ROLES_CACHE_KEY = "rbac:roles:";
+    private static final String PERMS_CACHE_KEY = "rbac:perms:";
+    private static final Duration RBAC_CACHE_TTL = Duration.ofMinutes(30);
+
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
     private final UserRoleMapper userRoleMapper;
@@ -56,13 +67,21 @@ public class RbacServiceImpl implements RbacService {
     private final UserMapper userMapper;
     private final LoginCryptoService loginCryptoService;
     private final TokenService tokenService;
+    private final RedisService redisService;
 
     // ==================== 权限查询 ====================
 
     @Override
     public List<String> listRoleCodes(Long userId) {
+        List<String> cached = getCachedCodes(ROLES_CACHE_KEY + userId);
+        if (cached != null) {
+            return cached;
+        }
         List<String> codes = roleMapper.selectRoleCodesByUserId(userId);
-        return codes == null ? Collections.emptyList() : codes;
+        codes = codes == null ? Collections.emptyList() : codes;
+        // 以逗号拼接字符串存储，与 Redis 的 JSON 序列化器兼容（List 反序列化有类型信息兼容问题）
+        redisService.set(ROLES_CACHE_KEY + userId, String.join(",", codes), RBAC_CACHE_TTL);
+        return codes;
     }
 
     @Override
@@ -72,14 +91,22 @@ public class RbacServiceImpl implements RbacService {
 
     @Override
     public List<String> listPermissionCodes(Long userId) {
+        List<String> cached = getCachedCodes(PERMS_CACHE_KEY + userId);
+        if (cached != null) {
+            return cached;
+        }
+        List<String> codes;
         // admin 角色始终拥有全部权限，避免误删 role_permission 后管理员被锁死
         if (listRoleCodes(userId).contains(ADMIN_CODE)) {
-            return permissionMapper.selectList(new LambdaQueryWrapper<Permission>()
-                    .orderByAsc(Permission::getSort))
+            codes = permissionMapper.selectList(new LambdaQueryWrapper<Permission>()
+                            .orderByAsc(Permission::getSort))
                     .stream().map(Permission::getCode).toList();
+        } else {
+            codes = permissionMapper.selectPermissionCodesByUserId(userId);
+            codes = codes == null ? Collections.emptyList() : codes;
         }
-        List<String> codes = permissionMapper.selectPermissionCodesByUserId(userId);
-        return codes == null ? Collections.emptyList() : codes;
+        redisService.set(PERMS_CACHE_KEY + userId, String.join(",", codes), RBAC_CACHE_TTL);
+        return codes;
     }
 
     private List<Role> listRolesOfUser(Long userId) {
@@ -221,6 +248,10 @@ public class RbacServiceImpl implements RbacService {
             rp.setPermissionId(permission.getId());
             rolePermissionMapper.insert(rp);
         }
+        // 角色权限变化影响所有持有该角色的用户，批量失效其缓存
+        userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>()
+                        .eq(UserRole::getRoleId, roleId))
+                .forEach(ur -> evictUserCache(ur.getUserId()));
     }
 
     // ==================== 用户管理 ====================
@@ -330,6 +361,7 @@ public class RbacServiceImpl implements RbacService {
             ur.setRoleId(role.getId());
             userRoleMapper.insert(ur);
         }
+        evictUserCache(userId);
     }
 
     @Override
@@ -351,6 +383,7 @@ public class RbacServiceImpl implements RbacService {
         ur.setUserId(userId);
         ur.setRoleId(role.getId());
         userRoleMapper.insert(ur);
+        evictUserCache(userId);
     }
 
     @Override
@@ -400,9 +433,32 @@ public class RbacServiceImpl implements RbacService {
         userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
         userMapper.deleteById(userId);
         tokenService.revokeAll(userId);
+        evictUserCache(userId);
     }
 
     // ==================== 私有方法 ====================
+
+    /** 读取缓存的编码列表（逗号拼接字符串）；未命中返回 null */
+    private List<String> getCachedCodes(String key) {
+        Object cached;
+        try {
+            cached = redisService.get(key);
+        } catch (Exception e) {
+            // 历史上以错误格式写入的缓存，读取失败时直接清除，不影响正常查询
+            redisService.delete(key);
+            return null;
+        }
+        if (cached instanceof String s) {
+            return s.isEmpty() ? Collections.emptyList() : Arrays.asList(s.split(","));
+        }
+        return null;
+    }
+
+    /** 用户授权信息变更后，删除其角色/权限码缓存 */
+    private void evictUserCache(Long userId) {
+        redisService.delete(ROLES_CACHE_KEY + userId);
+        redisService.delete(PERMS_CACHE_KEY + userId);
+    }
 
     private User requireUser(Long userId) {
         User user = userMapper.selectById(userId);
