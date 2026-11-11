@@ -54,7 +54,7 @@ export function updateActivityDraft(id: string, draft: ActivityDraftVO) {
 
 /** 确认发布：正式发布任务分工/物料/问卷/提醒 */
 export function publishActivity(id: string) {
-  return request<void>({ url: `/activities/${id}/publish`, method: 'POST' })
+  return request<void>({ url: `/activities/${id}/publish`, method: 'PUT' })
 }
 
 /** 生成复盘总结 */

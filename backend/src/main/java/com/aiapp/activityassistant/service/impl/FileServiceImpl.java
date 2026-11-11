@@ -204,7 +204,7 @@ public class FileServiceImpl implements FileService {
         try {
             bytes = chunk.getBytes();
         } catch (IOException e) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "读取分片失败");
+            throw new BusinessException(ResultCode.SERVER_ERROR, "读取分片失败");
         }
         if (bytes.length != expectedSize) {
             throw new BusinessException(ResultCode.CHUNK_CHECKSUM_MISMATCH,

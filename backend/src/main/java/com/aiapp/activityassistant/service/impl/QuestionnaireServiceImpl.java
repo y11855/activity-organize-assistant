@@ -193,7 +193,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         if (!Objects.equals(q.getStatus(), 1)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "问卷未发布或已截止，无法提交");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "问卷未发布或已截止，无法提交");
         }
         Long currentUserId = UserContext.getCurrentUserId();
         User user = userService.getById(currentUserId);

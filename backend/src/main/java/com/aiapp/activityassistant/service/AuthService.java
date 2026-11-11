@@ -42,7 +42,7 @@ public class AuthService {
         String rawPassword = loginCryptoService.decrypt(dto.getPassword());
         User user = userService.getByUsername(dto.getUsername());
         if (user == null || !BCrypt.checkpw(rawPassword, user.getPassword())) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "用户名或密码错误");
+            throw new BusinessException(ResultCode.LOGIN_FAILED, "用户名或密码错误");
         }
         if (Objects.equals(0, user.getStatus())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
@@ -58,7 +58,7 @@ public class AuthService {
         String email = EmailCodeService.normalize(dto.getEmail());
         User user = userService.getByEmail(email);
         if (user == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，请先登录后绑定邮箱");
+            throw new BusinessException(ResultCode.EMAIL_NOT_BOUND, "该邮箱未绑定账号，请先登录后绑定邮箱");
         }
         if (Objects.equals(0, user.getStatus())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
@@ -74,7 +74,7 @@ public class AuthService {
         String key = EmailCodeService.normalize(email);
         User user = userService.getByEmail(key);
         if (user == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，请先登录后绑定邮箱");
+            throw new BusinessException(ResultCode.EMAIL_NOT_BOUND, "该邮箱未绑定账号，请先登录后绑定邮箱");
         }
         if (Objects.equals(0, user.getStatus())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
@@ -89,14 +89,14 @@ public class AuthService {
         String key = EmailCodeService.normalize(email);
         User bound = userService.getByEmail(key);
         if (bound != null && !bound.getId().equals(userId)) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱已被其他账号绑定");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "该邮箱已被其他账号绑定");
         }
         User current = userService.getById(userId);
         if (current == null) {
             throw new BusinessException(ResultCode.UNAUTHORIZED);
         }
         if (current.getEmail() != null && EmailCodeService.normalize(current.getEmail()).equals(key)) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱已绑定当前账号");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "该邮箱已绑定当前账号");
         }
         emailCodeService.send(key);
     }
@@ -108,7 +108,7 @@ public class AuthService {
         String email = EmailCodeService.normalize(dto.getEmail());
         User bound = userService.getByEmail(email);
         if (bound != null && !bound.getId().equals(userId)) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱已被其他账号绑定");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "该邮箱已被其他账号绑定");
         }
         emailCodeService.verify(email, dto.getCode());
         User user = userService.getById(userId);
@@ -127,7 +127,7 @@ public class AuthService {
         String key = EmailCodeService.normalize(email);
         User user = userService.getByEmail(key);
         if (user == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，无法找回密码");
+            throw new BusinessException(ResultCode.EMAIL_NOT_BOUND, "该邮箱未绑定账号，无法找回密码");
         }
         if (Objects.equals(0, user.getStatus())) {
             throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
@@ -142,7 +142,7 @@ public class AuthService {
         String email = EmailCodeService.normalize(dto.getEmail());
         User user = userService.getByEmail(email);
         if (user == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "该邮箱未绑定账号，无法找回密码");
+            throw new BusinessException(ResultCode.EMAIL_NOT_BOUND, "该邮箱未绑定账号，无法找回密码");
         }
         emailCodeService.verifyReset(email, dto.getCode());
         String rawPassword = loginCryptoService.decrypt(dto.getPassword());
@@ -166,13 +166,13 @@ public class AuthService {
         }
         String username = dto.getUsername().trim();
         if (userService.getByUsername(username) != null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "用户名已被占用");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "用户名已被占用");
         }
         String email = dto.getEmail() == null || dto.getEmail().isBlank()
                 ? null
                 : EmailCodeService.normalize(dto.getEmail());
         if (email != null && userService.getByEmail(email) != null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "邮箱已被其他账号使用");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "邮箱已被其他账号使用");
         }
 
         User user = new User();
@@ -187,7 +187,7 @@ public class AuthService {
             userService.save(user);
         } catch (DuplicateKeyException e) {
             // 并发注册同名账号/同一邮箱时由唯一索引兜底
-            throw new BusinessException(ResultCode.PARAM_ERROR, "用户名或邮箱已被占用");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "用户名或邮箱已被占用");
         }
         rbacService.addUserRoleByCode(user.getId(), DEFAULT_ROLE_CODE);
         return issueToken(user);

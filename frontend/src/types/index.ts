@@ -156,6 +156,29 @@ export interface MessageVO {
   createTime: string
 }
 
+/** 定时提醒 */
+export interface ReminderVO {
+  id: string
+  activityId: string
+  title: string
+  content?: string
+  targetUserName?: string
+  triggerTime: string
+  /** 0待触发 1已发送 2已取消 3发送失败 */
+  status: number
+  createTime: string
+}
+
+/** 创建提醒请求 */
+export interface ReminderCreateDTO {
+  activityId: string
+  title: string
+  content?: string
+  targetUserId?: string
+  targetUserName?: string
+  triggerTime: string
+}
+
 /** 用户（成员选择器） */
 export interface UserSimpleVO {
   id: string

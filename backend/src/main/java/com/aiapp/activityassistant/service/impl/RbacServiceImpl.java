@@ -174,7 +174,7 @@ public class RbacServiceImpl implements RbacService {
     public Long createRole(RoleSaveDTO dto) {
         String code = dto.getCode().trim();
         if (roleMapper.selectCount(new LambdaQueryWrapper<Role>().eq(Role::getCode, code)) > 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "角色编码已存在");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "角色编码已存在");
         }
         Role role = new Role();
         role.setCode(code);
@@ -184,7 +184,7 @@ public class RbacServiceImpl implements RbacService {
         try {
             roleMapper.insert(role);
         } catch (DuplicateKeyException e) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "角色编码已存在");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "角色编码已存在");
         }
         return role.getId();
     }
@@ -210,12 +210,12 @@ public class RbacServiceImpl implements RbacService {
             throw new BusinessException(ResultCode.NOT_FOUND, "角色不存在");
         }
         if (Integer.valueOf(1).equals(role.getBuiltin())) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "内置角色不可删除");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "内置角色不可删除");
         }
         long userCount = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getRoleId, id));
         if (userCount > 0) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "角色已分配给用户，无法删除");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "角色已分配给用户，无法删除");
         }
         rolePermissionMapper.delete(new LambdaQueryWrapper<RolePermission>()
                 .eq(RolePermission::getRoleId, id));
@@ -230,7 +230,7 @@ public class RbacServiceImpl implements RbacService {
             throw new BusinessException(ResultCode.NOT_FOUND, "角色不存在");
         }
         if (ADMIN_CODE.equals(role.getCode())) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "内置管理员角色的权限不可修改");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "内置管理员角色的权限不可修改");
         }
         List<String> codes = permissionCodes == null ? Collections.emptyList()
                 : permissionCodes.stream().filter(Objects::nonNull).distinct().toList();
@@ -311,7 +311,7 @@ public class RbacServiceImpl implements RbacService {
         validatePassword(rawPassword);
         String username = dto.getUsername().trim();
         if (userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "用户名已被占用");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "用户名已被占用");
         }
         List<Role> roles = validateRoleIds(dto.getRoleIds());
         Integer status = dto.getStatus() == null ? 1 : dto.getStatus();
@@ -329,7 +329,7 @@ public class RbacServiceImpl implements RbacService {
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException e) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "用户名已被占用");
+            throw new BusinessException(ResultCode.RESOURCE_DUPLICATE, "用户名已被占用");
         }
         for (Role role : roles) {
             UserRole ur = new UserRole();
@@ -345,7 +345,7 @@ public class RbacServiceImpl implements RbacService {
     public void assignUserRoles(Long userId, List<Long> roleIds, Long currentUserId) {
         User user = requireUser(userId);
         if (Objects.equals(userId, currentUserId)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "不能修改自己的角色");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "不能修改自己的角色");
         }
         List<Role> roles = validateRoleIds(roleIds);
         boolean hadAdmin = listRoleCodes(userId).contains(ADMIN_CODE);
@@ -391,7 +391,7 @@ public class RbacServiceImpl implements RbacService {
     public void updateUserStatus(Long userId, Integer status, Long currentUserId) {
         User user = requireUser(userId);
         if (Objects.equals(userId, currentUserId)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "不能修改自己的账号状态");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "不能修改自己的账号状态");
         }
         if (status == null || (status != 0 && status != 1)) {
             throw new BusinessException(ResultCode.PARAM_ERROR, "账号状态只能为 0 或 1");
@@ -425,7 +425,7 @@ public class RbacServiceImpl implements RbacService {
     public void deleteUser(Long userId, Long currentUserId) {
         User user = requireUser(userId);
         if (Objects.equals(userId, currentUserId)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "不能删除自己");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "不能删除自己");
         }
         if (Integer.valueOf(1).equals(user.getStatus()) && listRoleCodes(userId).contains(ADMIN_CODE)) {
             ensureNotLastAdmin(userId);
@@ -484,7 +484,7 @@ public class RbacServiceImpl implements RbacService {
     private void ensureNotLastAdmin(Long excludeUserId) {
         List<Long> otherAdmins = roleMapper.selectOtherEnabledAdminIds(excludeUserId);
         if (otherAdmins == null || otherAdmins.isEmpty()) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "系统至少保留一名启用中的管理员");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "系统至少保留一名启用中的管理员");
         }
     }
 

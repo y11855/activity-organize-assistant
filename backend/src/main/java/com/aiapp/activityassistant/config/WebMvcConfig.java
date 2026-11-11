@@ -11,13 +11,13 @@ import java.io.File;
 import java.nio.file.Paths;
 
 /**
- * Web MVC 配置：认证拦截器 + 上传文件静态映射
+ * Web MVC 配置：幂等拦截器 + 上传文件静态映射。
+ * 认证与免登录白名单已迁移到 Shiro Filter，见 {@link ShiroConfig}。
  */
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    private final AuthInterceptor authInterceptor;
     private final IdempotentInterceptor idempotentInterceptor;
 
     /** 上传文件存储目录（Tomcat 部署时由环境变量 UPLOAD_DIR 指向绝对路径） */
@@ -26,25 +26,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/**")
-                .excludePathPatterns(
-                        "/auth/login",
-                        "/auth/register",
-                        "/auth/public-key",
-                        "/auth/captcha",
-                        "/auth/email-code",
-                        "/auth/login-by-email-code",
-                        "/auth/reset-code",
-                        "/auth/reset-password",
-                        "/uploads/**",
-                        // Knife4j / OpenAPI 文档
-                        "/doc.html", "/v3/api-docs/**", "/swagger-resources/**",
-                        "/webjars/**", "/favicon.ico",
-                        // Druid 监控页
-                        "/druid/**",
-                        "/error");
-        // 幂等拦截放在认证之后，确保能取到当前用户 ID
+        // Shiro 过滤器在 Servlet 层先完成认证并填充 UserContext，这里保持幂等拦截在其之后
         registry.addInterceptor(idempotentInterceptor)
                 .addPathPatterns("/**");
     }

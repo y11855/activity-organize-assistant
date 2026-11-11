@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,7 +29,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('system:role:view')")
+@RequiresPermissions("system:role:view")
 public class AdminRoleController {
 
     private final RbacService rbacService;
@@ -48,14 +48,14 @@ public class AdminRoleController {
 
     @Operation(summary = "新建角色")
     @PostMapping("/roles")
-    @PreAuthorize("hasAuthority('system:role:manage')")
+    @RequiresPermissions("system:role:manage")
     public Result<Long> create(@Valid @RequestBody RoleSaveDTO dto) {
         return Result.success(rbacService.createRole(dto));
     }
 
     @Operation(summary = "修改角色名称/说明（编码不可改）")
     @PutMapping("/roles/{id}")
-    @PreAuthorize("hasAuthority('system:role:manage')")
+    @RequiresPermissions("system:role:manage")
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody RoleSaveDTO dto) {
         rbacService.updateRole(id, dto);
         return Result.success();
@@ -63,7 +63,7 @@ public class AdminRoleController {
 
     @Operation(summary = "删除角色")
     @DeleteMapping("/roles/{id}")
-    @PreAuthorize("hasAuthority('system:role:manage')")
+    @RequiresPermissions("system:role:manage")
     public Result<Void> delete(@PathVariable Long id) {
         rbacService.deleteRole(id);
         return Result.success();
@@ -71,7 +71,7 @@ public class AdminRoleController {
 
     @Operation(summary = "分配角色权限（全量替换）")
     @PutMapping("/roles/{id}/permissions")
-    @PreAuthorize("hasAuthority('system:role:manage')")
+    @RequiresPermissions("system:role:manage")
     public Result<Void> assignPermissions(@PathVariable Long id,
             @Valid @RequestBody RolePermissionAssignDTO dto) {
         rbacService.assignPermissions(id, dto.getPermissionCodes());

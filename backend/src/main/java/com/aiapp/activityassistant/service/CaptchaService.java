@@ -43,12 +43,12 @@ public class CaptchaService {
         }
         String cached = (String) redisService.get(CAPTCHA_KEY + key);
         if (cached == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "验证码已过期，请刷新");
+            throw new BusinessException(ResultCode.CAPTCHA_EXPIRED, "验证码已过期，请刷新");
         }
         // 一次性：无论对错都删除，避免被反复尝试
         redisService.delete(CAPTCHA_KEY + key);
         if (!cached.equalsIgnoreCase(code.trim())) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "验证码错误");
+            throw new BusinessException(ResultCode.CAPTCHA_INVALID, "验证码错误");
         }
     }
 

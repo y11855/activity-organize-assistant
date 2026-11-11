@@ -64,7 +64,7 @@ public class EmailCodeService {
     private void sendWith(String codeKey, String limitKey, String email, String subject) {
         String key = normalize(email);
         if (!redisService.setIfAbsent(limitKey + key, "1", LIMIT_TTL)) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "发送过于频繁，请 60 秒后再试");
+            throw new BusinessException(ResultCode.FREQUENT_OPERATION, "发送过于频繁，请 60 秒后再试");
         }
         String code = RandomUtil.randomNumbers(6);
         redisService.set(codeKey + key, code, CODE_TTL);
@@ -91,11 +91,11 @@ public class EmailCodeService {
         }
         String cached = (String) redisService.get(codeKey + key);
         if (cached == null) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "验证码已过期，请重新获取");
+            throw new BusinessException(ResultCode.CAPTCHA_EXPIRED, "验证码已过期，请重新获取");
         }
         redisService.delete(codeKey + key);
         if (!cached.equals(code.trim())) {
-            throw new BusinessException(ResultCode.PARAM_ERROR, "验证码错误");
+            throw new BusinessException(ResultCode.CAPTCHA_INVALID, "验证码错误");
         }
     }
 

@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +38,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/questionnaires")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('questionnaire:view')")
+@RequiresPermissions("questionnaire:view")
 public class QuestionnaireController {
 
     private final QuestionnaireService questionnaireService;

@@ -28,6 +28,7 @@
         <knife4j.version>4.5.0</knife4j.version>
         <easyexcel.version>3.3.4</easyexcel.version>
         <lombok.version>1.18.38</lombok.version>
+        <shiro.version>2.0.2</shiro.version>
     </properties>
 
     <dependencies>
@@ -56,10 +57,26 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-        <!-- 权限校验：仅用方法级 @PreAuthorize，认证仍走现有 Redis token 拦截器 -->
+        <!-- 鉴权：Shiro 2.0。默认 jar 仍基于 javax.servlet，Spring Boot 3 必须用 jakarta 分类器；
+             shiro-spring 会传递依赖 javax 版 shiro-web，这里排除后单独引入 jakarta 版。
+             认证仍走 Redis token，由 UserRealm + BearerTokenFilter 完成 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-spring</artifactId>
+            <version>${shiro.version}</version>
+            <classifier>jakarta</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.shiro</groupId>
+                    <artifactId>shiro-web</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-web</artifactId>
+            <version>${shiro.version}</version>
+            <classifier>jakarta</classifier>
         </dependency>
 
         <!-- 数据层 -->

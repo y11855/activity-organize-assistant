@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,7 +28,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/reminders")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('reminder:view')")
+@RequiresPermissions("reminder:view")
 public class ReminderController {
 
     private final ReminderService reminderService;
@@ -51,5 +51,11 @@ public class ReminderController {
     @GetMapping
     public Result<List<ReminderVO>> listByActivity(@RequestParam Long activityId) {
         return Result.success(reminderService.listByActivity(activityId));
+    }
+
+    @Operation(summary = "发给我的提醒列表")
+    @GetMapping("/my")
+    public Result<List<ReminderVO>> listMine() {
+        return Result.success(reminderService.listMine());
     }
 }

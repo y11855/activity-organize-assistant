@@ -28,6 +28,11 @@ public interface ReminderService extends IService<Reminder> {
     List<ReminderVO> listByActivity(Long activityId);
 
     /**
+     * 获取发给当前用户的提醒列表
+     */
+    List<ReminderVO> listMine();
+
+    /**
      * 扫描并触发到期提醒（由调度器调用）
      */
     void triggerDueReminders();

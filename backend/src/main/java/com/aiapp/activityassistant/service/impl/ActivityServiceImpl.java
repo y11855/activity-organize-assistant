@@ -111,7 +111,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         Integer status = activity.getStatus();
         // 状态互斥：仅「草稿」或「待确认」允许触发 AI 生成
         if (status == null || (status != 0 && status != 5)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR,
+            throw new BusinessException(ResultCode.STATE_CONFLICT,
                     "当前状态（" + activityStatusLabel(status) + "）不可生成内容");
         }
         if (options == null || !options.anySelected()) {
@@ -135,7 +135,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         if (activity.getDraftContent() == null || activity.getDraftContent().isBlank()) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "暂无待确认的 AI 生成内容");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "暂无待确认的 AI 生成内容");
         }
         return readDraft(activity.getDraftContent());
     }
@@ -150,7 +150,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         // 状态互斥：仅「待确认」状态的内容可编辑
         if (!Objects.equals(activity.getStatus(), 5)
                 || !Integer.valueOf(1).equals(activity.getDraftStatus())) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "仅待确认状态的内容可以编辑");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "仅待确认状态的内容可以编辑");
         }
         activity.setDraftContent(writeDraft(draft));
         activity.setPlanContent(draft.getPlanContent());
@@ -170,7 +170,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         // 状态互斥：必须处于「待确认」且草稿就绪，防止未经确认直接发布
         if (!Objects.equals(activity.getStatus(), 5)
                 || !Integer.valueOf(1).equals(activity.getDraftStatus())) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "当前状态不可确认发布，请先完成 AI 生成");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "当前状态不可确认发布，请先完成 AI 生成");
         }
         ActivityDraftVO draft = readDraft(activity.getDraftContent());
         ActivityGenerateDTO options = draft.getOptions() == null ? new ActivityGenerateDTO() : draft.getOptions();
@@ -238,10 +238,10 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         Integer status = activity.getStatus();
         // 状态互斥：AI 生成中不允许取消，避免生成回写与取消状态冲突
         if (Integer.valueOf(1).equals(status)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "AI 正在生成内容，请等待生成完成后再取消活动");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "AI 正在生成内容，请等待生成完成后再取消活动");
         }
         if (Integer.valueOf(4).equals(status) && !deleteRecord) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "活动已取消");
+            throw new BusinessException(ResultCode.STATE_CONFLICT, "活动已取消");
         }
 
         // 1. 所有关联报名问卷自动截止，禁止新用户继续提交报名
@@ -311,7 +311,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             return draftMapper.readValue(json, ActivityDraftVO.class);
         } catch (Exception e) {
             log.error("[活动] 草稿解析失败", e);
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "草稿数据解析失败，请重新生成");
+            throw new BusinessException(ResultCode.SERVER_ERROR, "草稿数据解析失败，请重新生成");
         }
     }
 
@@ -325,7 +325,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             return draftMapper.writeValueAsString(value);
         } catch (Exception e) {
             log.error("[活动] 草稿序列化失败", e);
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "草稿数据保存失败");
+            throw new BusinessException(ResultCode.SERVER_ERROR, "草稿数据保存失败");
         }
     }
 
@@ -463,18 +463,18 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         Activity activity = getById(id);
         // 状态互斥：任务必须先经发起人确认发布，才能通知成员
         if (!Objects.equals(activity.getStatus(), 2)) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "请先确认并发布 AI 生成的内容，再通知成员");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "请先确认并发布 AI 生成的内容，再通知成员");
         }
         List<TaskAssignment> tasks = taskService.listByActivity(id);
         if (tasks.isEmpty()) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "当前活动还没有任务分工，无法确认");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "当前活动还没有任务分工，无法确认");
         }
         // 按负责人分组（跳过未指定负责人的任务）
         Map<Long, List<TaskAssignment>> byAssignee = tasks.stream()
                 .filter(t -> t.getAssigneeId() != null)
                 .collect(Collectors.groupingBy(TaskAssignment::getAssigneeId));
         if (byAssignee.isEmpty()) {
-            throw new BusinessException(ResultCode.BUSINESS_ERROR, "所有任务都未指定负责人，无法通知");
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "所有任务都未指定负责人，无法通知");
         }
         String activityTitle = activity.getTitle();
         byAssignee.forEach((assigneeId, myTasks) -> {
