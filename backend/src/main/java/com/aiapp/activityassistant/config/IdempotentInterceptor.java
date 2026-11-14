@@ -18,9 +18,9 @@ import java.time.Duration;
 
 /**
  * 幂等拦截器：拦截标注 @Idempotent 的接口。
- * key = idem:{prefix}:{userId}:{METHOD + URI + 查询串摘要}，通过 Redis SET NX EX 原子抢占。
- * 说明：preHandle 阶段无法拿到已反序列化的请求体，因此摘要只覆盖请求方法、路径与查询参数；
- * 对「同一路径同一用户」的重复提交已足够，创建类接口建议配合前端防抖使用。
+ * key = idem:{prefix}:{userId}:{sha256(METHOD|URI|查询串|请求体摘要)}，通过 Redis SET NX EX 原子抢占。
+ * 请求体摘要由 {@link CachedBodyFilter} 提前计算；无请求体时兼容 X-Request-Id 头（供外部重试复用同一 key）。
+ * 相同用户 + 相同路径 + 相同参数在 ttl 内只放行一次，可拦住前端连续点击造成的重复提交。
  */
 @Slf4j
 @Component
@@ -43,8 +43,11 @@ public class IdempotentInterceptor implements HandlerInterceptor {
         String prefix = annotation.prefix().isBlank()
                 ? handlerMethod.getMethod().getName()
                 : annotation.prefix();
+        Object bodyDigest = request.getAttribute(CachedBodyFilter.BODY_DIGEST_ATTRIBUTE);
+        String requestId = request.getHeader("X-Request-Id");
         String raw = request.getMethod() + "|" + request.getRequestURI() + "|"
-                + (request.getQueryString() == null ? "" : request.getQueryString());
+                + (request.getQueryString() == null ? "" : request.getQueryString()) + "|"
+                + (bodyDigest != null ? bodyDigest : (requestId == null ? "" : requestId));
         String key = "idem:" + prefix + ":" + userId + ":" + DigestUtil.sha256Hex(raw);
 
         boolean acquired = redisService.setIfAbsent(key, "1",

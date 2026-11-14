@@ -50,7 +50,7 @@ const onRegister = debounce(async () => {
     })
     userStore.setLoginInfo(res)
     ElMessage.success('注册成功')
-    router.push('/activities')
+    router.push('/dashboard')
   } catch {
     // 错误提示已在拦截器统一弹出
   } finally {

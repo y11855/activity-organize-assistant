@@ -36,7 +36,6 @@ public class AuthService {
      * 密码登录：先校验图形验证码 → 解密前端传来的密码密文 → 校验用户名密码 → 签发 token
      */
     public LoginVO login(LoginDTO dto) {
-        // 图形验证码防暴力破解，校验后即失效
         captchaService.verifyImageCaptcha(dto.getCaptchaKey(), dto.getCaptchaCode());
         // 前端用 RSA 公钥加密密码，这里先解密还原明文，再交给 BCrypt 校验
         String rawPassword = loginCryptoService.decrypt(dto.getPassword());

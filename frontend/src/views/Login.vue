@@ -21,7 +21,32 @@ const captchaImg = ref('')
 
 // 邮箱验证码登录表单
 const codeForm = ref({ email: '', code: '' })
-const countdown = ref(0)
+const codeSending = ref(false)
+
+/** 倒计时控制器：start 立即置灰并递减，stop 取消并恢复可点击 */
+const createCountdown = (total = 60) => {
+  const seconds = ref(0)
+  let timer: ReturnType<typeof setInterval> | null = null
+
+  const stop = () => {
+    if (timer) clearInterval(timer)
+    timer = null
+    seconds.value = 0
+  }
+
+  const start = () => {
+    stop()
+    seconds.value = total
+    timer = setInterval(() => {
+      seconds.value--
+      if (seconds.value <= 0) stop()
+    }, 1000)
+  }
+
+  return { seconds, start, stop }
+}
+
+const { seconds: countdown, start: startCodeCountdown, stop: stopCodeCountdown } = createCountdown()
 
 // 加载图形验证码
 const loadCaptcha = async () => {
@@ -34,25 +59,25 @@ const loadCaptcha = async () => {
   }
 }
 
-// 发送邮箱验证码
-const onSendCode = debounce(async () => {
+// 发送邮箱验证码：点击即置灰倒计时，防止重复点击/重复发送
+const onSendCode = async () => {
+  if (codeSending.value || countdown.value > 0) return
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(codeForm.value.email)) {
     ElMessage.warning('请输入正确的邮箱')
     return
   }
-  if (countdown.value > 0) return
+  codeSending.value = true
+  startCodeCountdown()
   try {
     await sendEmailCode(codeForm.value.email)
     ElMessage.success('验证码已发送，请查收邮箱')
-    countdown.value = 60
-    const timer = setInterval(() => {
-      countdown.value--
-      if (countdown.value <= 0) clearInterval(timer)
-    }, 1000)
   } catch {
-    // 拦截器统一提示
+    // 发送失败时恢复按钮，允许立即重试
+    stopCodeCountdown()
+  } finally {
+    codeSending.value = false
   }
-}, 500)
+}
 
 // 密码登录
 const onPwdLogin = debounce(async () => {
@@ -79,7 +104,7 @@ const onPwdLogin = debounce(async () => {
     })
     userStore.setLoginInfo(res)
     ElMessage.success(`欢迎，${res.nickname || res.username}`)
-    router.push('/activities')
+    router.push('/dashboard')
   } catch {
     loadCaptcha() // 登录失败刷新验证码
   } finally {
@@ -99,7 +124,7 @@ const onCodeLogin = debounce(async () => {
     const res = await loginByEmailCode({ email: codeForm.value.email, code: codeForm.value.code })
     userStore.setLoginInfo(res)
     ElMessage.success(`欢迎，${res.nickname || res.username}`)
-    router.push('/activities')
+    router.push('/dashboard')
   } catch {
     // 拦截器统一提示
   } finally {
@@ -110,33 +135,34 @@ const onCodeLogin = debounce(async () => {
 // ===== 忘记密码 =====
 const resetVisible = ref(false)
 const resetLoading = ref(false)
-const resetCountdown = ref(0)
+const resetCodeSending = ref(false)
+const { seconds: resetCountdown, start: startResetCountdown, stop: stopResetCountdown } = createCountdown()
 const resetForm = ref({ email: '', code: '', password: '', confirmPassword: '' })
 
 function openResetDialog() {
   resetForm.value = { email: '', code: '', password: '', confirmPassword: '' }
-  resetCountdown.value = 0
+  stopResetCountdown()
   resetVisible.value = true
 }
 
-const onSendResetCode = debounce(async () => {
+// 发送重置密码验证码：同样点击即置灰倒计时
+const onSendResetCode = async () => {
+  if (resetCodeSending.value || resetCountdown.value > 0) return
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetForm.value.email)) {
     ElMessage.warning('请输入正确的邮箱')
     return
   }
-  if (resetCountdown.value > 0) return
+  resetCodeSending.value = true
+  startResetCountdown()
   try {
     await sendResetCode(resetForm.value.email)
     ElMessage.success('验证码已发送，请查收邮箱')
-    resetCountdown.value = 60
-    const timer = setInterval(() => {
-      resetCountdown.value--
-      if (resetCountdown.value <= 0) clearInterval(timer)
-    }, 1000)
   } catch {
-    // 拦截器统一提示
+    stopResetCountdown()
+  } finally {
+    resetCodeSending.value = false
   }
-}, 500)
+}
 
 const onResetPassword = debounce(async () => {
   if (!resetForm.value.email || !resetForm.value.code) {
@@ -219,7 +245,13 @@ onMounted(loadCaptcha)
         <el-form-item label="验证码">
           <div class="login__captcha">
             <el-input v-model="codeForm.code" placeholder="请输入6位验证码" />
-            <el-button type="primary" plain :disabled="countdown > 0" @click="onSendCode">
+            <el-button
+              type="primary"
+              plain
+              :loading="codeSending"
+              :disabled="countdown > 0"
+              @click="onSendCode"
+            >
               {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
             </el-button>
           </div>
@@ -246,7 +278,13 @@ onMounted(loadCaptcha)
         <el-form-item label="验证码">
           <div class="login__captcha">
             <el-input v-model="resetForm.code" placeholder="请输入6位验证码" />
-            <el-button type="primary" plain :disabled="resetCountdown > 0" @click="onSendResetCode">
+            <el-button
+              type="primary"
+              plain
+              :loading="resetCodeSending"
+              :disabled="resetCountdown > 0"
+              @click="onSendResetCode"
+            >
               {{ resetCountdown > 0 ? `${resetCountdown}s` : '获取验证码' }}
             </el-button>
           </div>

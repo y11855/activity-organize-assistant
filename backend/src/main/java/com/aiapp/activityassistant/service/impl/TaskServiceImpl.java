@@ -3,6 +3,8 @@ package com.aiapp.activityassistant.service.impl;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
+import com.aiapp.activityassistant.common.mq.ActivityEventType;
 import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.TaskAssignDTO;
@@ -42,6 +44,8 @@ public class TaskServiceImpl extends ServiceImpl<TaskAssignmentMapper, TaskAssig
     @Lazy
     @Autowired
     private ActivityService activityService;
+
+    private final ActivityEventPublisher eventPublisher;
 
     @Override
     public Long assign(TaskAssignDTO dto) {
@@ -87,6 +91,11 @@ public class TaskServiceImpl extends ServiceImpl<TaskAssignmentMapper, TaskAssig
         task.setStatus(2);
         updateById(task);
         activityService.evictDetailCache(task.getActivityId());
+        Activity activity = activityService.getById(task.getActivityId());
+        if (activity != null) {
+            eventPublisher.publish(ActivityEventType.TASK_COMPLETED, activity.getCreatorId(),
+                    activity.getId(), "任务完成：" + task.getTitle());
+        }
     }
 
     @Override

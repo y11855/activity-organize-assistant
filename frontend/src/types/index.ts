@@ -308,3 +308,41 @@ export interface ChunkStatusVO {
   uploadedChunks: number[]
   merged: boolean
 }
+
+/** 大屏活动状态分布项 */
+export interface DashboardStatusItem {
+  name: string
+  value: number
+}
+
+/** 大屏报名趋势项 */
+export interface DashboardTrendItem {
+  date: string
+  count: number
+}
+
+/** 大屏实时动态项（由 Redis Stream 消息生成） */
+export interface DashboardEventItem {
+  type: string
+  content: string
+  time: string
+}
+
+/** 数据大屏概览（仅当前登录账号相关数据） */
+export interface DashboardOverviewVO {
+  activityTotal: number
+  runningCount: number
+  completedCount: number
+  pendingCount: number
+  cancelledCount: number
+  registrationTotal: number
+  taskTotal: number
+  taskCompleted: number
+  taskCompletionRate: number
+  myTodoCount: number
+  reminderCount: number
+  unreadMessages: number
+  statusDistribution: DashboardStatusItem[]
+  registrationTrend: DashboardTrendItem[]
+  recentEvents: DashboardEventItem[]
+}

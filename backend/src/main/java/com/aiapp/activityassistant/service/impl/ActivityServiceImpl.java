@@ -4,6 +4,8 @@ import com.aiapp.activityassistant.agent.ActivityAgent;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
+import com.aiapp.activityassistant.common.mq.ActivityEventType;
 import com.aiapp.activityassistant.common.redis.RedisService;
 import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
@@ -72,6 +74,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     private final MessageService messageService;
     private final UserService userService;
     private final IdempotentKeyGenerator idempotentKeyGenerator;
+    private final ActivityEventPublisher eventPublisher;
 
     /** 草稿 JSON 序列化/反序列化共用 JacksonConfig 中配置的 draftObjectMapper（支持 LocalDateTime） */
     @Qualifier("draftObjectMapper")
@@ -97,6 +100,8 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         activity.setStatus(0);
         activity.setDraftStatus(0);
         save(activity);
+        eventPublisher.publish(ActivityEventType.ACTIVITY_CREATED,
+                currentUserId, activity.getId(), "创建活动：" + dto.getTitle());
         // AI 生成需发起人勾选生成项后另行触发（POST /activities/{id}/generate）
         return activity.getId();
     }
@@ -224,6 +229,8 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         activity.setDraftContent(null);
         updateById(activity);
         evictDetailCache(id);
+        eventPublisher.publish(ActivityEventType.ACTIVITY_PUBLISHED,
+                activity.getCreatorId(), id, "发布活动：" + activity.getTitle());
         log.info("[活动] 内容已确认发布, activityId={}", id);
     }
 
@@ -283,6 +290,8 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             log.info("[活动] 已取消（保留记录）, activityId={}, 级联截止问卷={}", id, questionnaires.size());
         }
         evictDetailCache(id);
+        eventPublisher.publish(ActivityEventType.ACTIVITY_CANCELLED,
+                activity.getCreatorId(), id, "取消活动：" + activity.getTitle());
     }
 
     @Override

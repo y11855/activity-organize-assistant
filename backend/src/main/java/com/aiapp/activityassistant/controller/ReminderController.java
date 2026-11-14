@@ -42,6 +42,7 @@ public class ReminderController {
 
     @Operation(summary = "取消提醒（活动前定时提醒可取消）")
     @DeleteMapping("/{id}")
+    @Idempotent(prefix = "reminder:cancel", ttl = 3)
     public Result<Void> cancel(@PathVariable Long id) {
         reminderService.cancel(id);
         return Result.success();

@@ -54,6 +54,7 @@ public class TaskController {
 
     @Operation(summary = "标记任务完成")
     @PutMapping("/{id}/complete")
+    @Idempotent(prefix = "task:complete", ttl = 3)
     public Result<Void> complete(@PathVariable Long id) {
         taskService.complete(id);
         return Result.success();

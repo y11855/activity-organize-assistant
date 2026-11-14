@@ -58,6 +58,7 @@ public class QuestionnaireController {
 
     @Operation(summary = "发布问卷")
     @PutMapping("/{id}/publish")
+    @Idempotent(prefix = "questionnaire:publish", ttl = 3)
     public Result<Void> publish(@PathVariable Long id) {
         questionnaireService.publish(id);
         return Result.success();
@@ -65,6 +66,7 @@ public class QuestionnaireController {
 
     @Operation(summary = "截止问卷")
     @PutMapping("/{id}/close")
+    @Idempotent(prefix = "questionnaire:close", ttl = 3)
     public Result<Void> close(@PathVariable Long id) {
         questionnaireService.close(id);
         return Result.success();
@@ -72,6 +74,7 @@ public class QuestionnaireController {
 
     @Operation(summary = "编辑问卷（含封面）")
     @PutMapping("/{id}")
+    @Idempotent(prefix = "questionnaire:update", ttl = 3)
     public Result<Void> update(@PathVariable Long id, @Valid @RequestBody QuestionnaireSaveDTO dto) {
         questionnaireService.update(id, dto);
         return Result.success();

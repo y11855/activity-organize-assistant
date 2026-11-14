@@ -2,9 +2,12 @@ package com.aiapp.activityassistant.service.impl;
 
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
+import com.aiapp.activityassistant.common.mq.ActivityEventType;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.common.utils.IdempotentKeyGenerator;
 import com.aiapp.activityassistant.dto.ReminderCreateDTO;
+import com.aiapp.activityassistant.entity.Activity;
 import com.aiapp.activityassistant.entity.Reminder;
 import com.aiapp.activityassistant.mapper.ReminderMapper;
 import com.aiapp.activityassistant.service.ActivityService;
@@ -35,6 +38,7 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
     private final ActivityService activityService;
     private final ToolDispatcher toolDispatcher;
     private final IdempotentKeyGenerator idempotentKeyGenerator;
+    private final ActivityEventPublisher eventPublisher;
 
     /** 提醒失败后的最大重试次数（每次调度最多再尝试 1 次，配合 ToolDispatcher 内部同步重试） */
     private static final int MAX_RETRY = 3;
@@ -122,6 +126,11 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
                 ));
                 reminder.setStatus(1);
                 reminder.setRetryCount(0);
+                Activity activity = activityService.getById(reminder.getActivityId());
+                if (activity != null) {
+                    eventPublisher.publish(ActivityEventType.REMINDER_SENT, activity.getCreatorId(),
+                            activity.getId(), "提醒已发送：" + reminder.getTitle());
+                }
             } catch (Exception e) {
                 log.error("[提醒] 发送失败, reminderId={}, retryCount={}", reminder.getId(), reminder.getRetryCount(), e);
                 reminder.setRetryCount(reminder.getRetryCount() + 1);

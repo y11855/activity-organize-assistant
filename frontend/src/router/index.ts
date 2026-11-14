@@ -20,8 +20,14 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: Layout,
-    redirect: '/activities',
+    redirect: '/dashboard',
     children: [
+      {
+        path: 'dashboard',
+        name: 'dashboard',
+        component: () => import('@/views/Dashboard.vue'),
+        meta: { title: '数据大屏', icon: 'DataLine', permission: 'activity:view' }
+      },
       {
         path: 'activities',
         name: 'activity-list',

@@ -3,6 +3,8 @@ package com.aiapp.activityassistant.service.impl;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.exception.BusinessException;
+import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
+import com.aiapp.activityassistant.common.mq.ActivityEventType;
 import com.aiapp.activityassistant.common.result.PageVO;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.dto.QuestionnaireSaveDTO;
@@ -46,6 +48,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
     private final ActivityService activityService;
     private final QuestionnaireResponseMapper responseMapper;
     private final UserService userService;
+    private final ActivityEventPublisher eventPublisher;
 
     @Override
     public Long generate(Long activityId) {
@@ -213,6 +216,7 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
             // 之前取消过报名的用户重新提交时，恢复为已报名
             existing.setStatus(1);
             responseMapper.updateById(existing);
+            publishRegistration(q, existing.getRespondentName());
             return;
         }
 
@@ -225,6 +229,16 @@ public class QuestionnaireServiceImpl extends ServiceImpl<QuestionnaireMapper, Q
         response.setStatus(1);
         response.setSubmitTime(LocalDateTime.now());
         responseMapper.insert(response);
+        publishRegistration(q, response.getRespondentName());
+    }
+
+    /** 报名事件投递给活动创建人的大屏（异步，不影响报名主流程） */
+    private void publishRegistration(Questionnaire q, String respondentName) {
+        Activity activity = activityService.getById(q.getActivityId());
+        if (activity != null) {
+            eventPublisher.publish(ActivityEventType.REGISTRATION_SUBMITTED, activity.getCreatorId(),
+                    activity.getId(), respondentName + " 报名了「" + activity.getTitle() + "」");
+        }
     }
 
     @Override

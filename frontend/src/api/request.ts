@@ -1,4 +1,8 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig
+} from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores'
 
@@ -8,9 +12,46 @@ const service: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+type DedupeConfig = InternalAxiosRequestConfig & { __dedupeKey?: string }
+
+/**
+ * 前端防抖：相同「方法 + 地址 + 请求体」的写请求在响应返回前只放行一次，
+ * 用户连续点击同一按钮时，后续请求在前端直接被拦截，不再打到后端。
+ */
+const pendingRequests = new Set<string>()
+const MUTATING_METHODS = ['post', 'put', 'delete']
+
+function buildDedupeKey(config: InternalAxiosRequestConfig): string | null {
+  const method = (config.method ?? 'get').toLowerCase()
+  if (!MUTATING_METHODS.includes(method)) {
+    return null
+  }
+  // 文件/分片上传使用 FormData 且常并发，不做去重
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    return null
+  }
+  return `${method}|${config.url}|${JSON.stringify(config.params ?? '')}|${JSON.stringify(config.data ?? '')}`
+}
+
+function releaseDedupeKey(config?: InternalAxiosRequestConfig) {
+  const key = (config as DedupeConfig | undefined)?.__dedupeKey
+  if (key) {
+    pendingRequests.delete(key)
+  }
+}
+
 // 请求拦截器
 service.interceptors.request.use(
   (config) => {
+    const dedupeKey = buildDedupeKey(config)
+    if (dedupeKey) {
+      if (pendingRequests.has(dedupeKey)) {
+        ElMessage.warning('请求处理中，请勿重复提交')
+        return Promise.reject(new axios.Cancel('duplicate request'))
+      }
+      pendingRequests.add(dedupeKey)
+      ;(config as DedupeConfig).__dedupeKey = dedupeKey
+    }
     const userStore = useUserStore()
     if (userStore.token) {
       config.headers.Authorization = `Bearer ${userStore.token}`
@@ -66,6 +107,7 @@ function errorMessage(status?: number): string {
  */
 service.interceptors.response.use(
   (response) => {
+    releaseDedupeKey(response.config)
     // 文件下载等二进制响应直接返回
     if (response.config.responseType === 'blob') {
       return response.data
@@ -87,6 +129,11 @@ service.interceptors.response.use(
     return Promise.reject(new Error(message || 'Error'))
   },
   (error) => {
+    releaseDedupeKey(error.config)
+    // 被前端去重逻辑拦截的请求无需提示
+    if (axios.isCancel(error)) {
+      return Promise.reject(error)
+    }
     const status: number | undefined = error.response?.status
     const payload = error.response?.data
     const body = (payload && typeof payload === 'object' ? payload : {}) as {

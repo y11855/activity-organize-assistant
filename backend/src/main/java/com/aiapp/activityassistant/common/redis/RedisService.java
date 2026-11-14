@@ -74,4 +74,16 @@ public class RedisService {
     public Long sRemove(String key, Object... values) {
         return redisTemplate.opsForSet().remove(KEY_PREFIX + key, values);
     }
+
+    /** 向列表左侧插入并裁剪，仅保留最近 maxSize 条（大屏实时动态用） */
+    public void pushCapped(String key, Object value, int maxSize) {
+        redisTemplate.opsForList().leftPush(KEY_PREFIX + key, value);
+        redisTemplate.opsForList().trim(KEY_PREFIX + key, 0, maxSize - 1L);
+    }
+
+    /** 读取列表区间，start=0 表示最新一条 */
+    public java.util.List<Object> range(String key, long start, long end) {
+        java.util.List<Object> list = redisTemplate.opsForList().range(KEY_PREFIX + key, start, end);
+        return list == null ? java.util.Collections.emptyList() : list;
+    }
 }

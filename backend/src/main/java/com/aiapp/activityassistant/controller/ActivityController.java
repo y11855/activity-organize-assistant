@@ -62,6 +62,7 @@ public class ActivityController {
 
     @Operation(summary = "取消活动（可选是否删除活动记录；问卷自动截止）")
     @PutMapping("/{id}/cancel")
+    @Idempotent(prefix = "activity:cancel", ttl = 3)
     public Result<Void> cancel(@PathVariable Long id,
             @RequestParam(value = "deleteRecord", defaultValue = "false") boolean deleteRecord) {
         activityService.cancel(id, deleteRecord);
@@ -84,6 +85,7 @@ public class ActivityController {
 
     @Operation(summary = "保存发起人对 AI 生成内容的编辑")
     @PutMapping("/{id}/draft")
+    @Idempotent(prefix = "activity:update-draft", ttl = 3)
     public Result<Void> updateDraft(@PathVariable Long id, @RequestBody ActivityDraftVO draft) {
         activityService.updateDraft(id, draft);
         return Result.success();
