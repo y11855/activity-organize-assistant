@@ -321,7 +321,7 @@ export interface DashboardTrendItem {
   count: number
 }
 
-/** 大屏实时动态项（由 Redis Stream 消息生成） */
+/** 大屏实时动态项（由 Kafka 消息生成） */
 export interface DashboardEventItem {
   type: string
   content: string

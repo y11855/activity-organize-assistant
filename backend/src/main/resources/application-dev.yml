@@ -42,6 +42,27 @@ spring:
         url-pattern: /*
         exclusions: '*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*'
       aop-patterns: com.aiapp.activityassistant.service.*,com.aiapp.activityassistant.tool.*
+  # Kafka 事件总线：业务事件异步驱动数据大屏刷新
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # acks=1：主副本写入即确认，兼顾可靠性与大屏场景的吞吐
+      acks: 1
+      retries: 2
+    consumer:
+      group-id: activity-assistant-dashboard
+      # 大屏不关心历史事件，从最新消息开始消费
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+      # Kafka 未启动时不阻断服务启动
+      missing-topics-fatal: false
+    admin:
+      fail-fast: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}

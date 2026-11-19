@@ -100,6 +100,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        <!-- 消息队列：Kafka 事件总线，业务事件异步驱动数据大屏刷新 -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
         <!-- 配置加密：把 yml 中的明文密码写成 ENC(密文)，启动时用主密钥解密（Spring Boot 3 兼容版） -->
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>

@@ -242,7 +242,7 @@ onUnmounted(() => {
         <div ref="trendChartRef" class="chart"></div>
       </div>
       <div class="panel">
-        <h3>实时动态 <span class="badge">Redis Stream</span></h3>
+        <h3>实时动态 <span class="badge">Kafka</span></h3>
         <ul v-if="data?.recentEvents?.length" class="feed">
           <li v-for="(item, index) in data.recentEvents" :key="index">
             <span class="dot"></span>
@@ -255,8 +255,6 @@ onUnmounted(() => {
         <div v-else class="feed-empty">暂无动态，报名、任务完成等操作会实时推送</div>
       </div>
     </section>
-
-    <p class="footer">数据每 30 秒自动刷新 · 事件经由 Redis Stream 异步更新</p>
   </div>
 </template>
 
@@ -420,12 +418,6 @@ onUnmounted(() => {
   height: 280px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
-}
-
-.footer {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  text-align: right;
 }
 
 @media (max-width: 1280px) {
