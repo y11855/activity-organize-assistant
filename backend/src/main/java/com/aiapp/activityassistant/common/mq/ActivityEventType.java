@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 业务事件类型（Redis Stream 消息体中的 type 字段）
+ * 业务事件类型（Kafka 消息体中的 type 字段）
  */
 @Getter
 @AllArgsConstructor

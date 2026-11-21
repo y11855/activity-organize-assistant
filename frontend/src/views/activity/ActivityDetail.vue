@@ -34,6 +34,7 @@ import type {
   ActivityEventLogVO
 } from '@/types'
 import { debounce, formatDate } from '@/utils'
+import ActivityChat from '@/components/ActivityChat.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,6 +47,8 @@ const confirming = ref(false)
 const publishing = ref(false)
 const savingDraft = ref(false)
 const generating = ref(false)
+/** 活动讨论抽屉 */
+const chatVisible = ref(false)
 
 /** 当前用户是否可管理活动：创建者，或拥有 activity:manage 权限的活动负责人 */
 const isCreator = computed(
@@ -575,6 +578,7 @@ async function loadAll() {
         <div class="detail__header">
           <h2>{{ detail.title }}</h2>
           <div>
+            <el-button @click="chatVisible = true">讨论</el-button>
             <el-button @click="goFiles">活动资料</el-button>
             <el-button v-if="isCreator && detail.status === 0" type="primary" @click="openOptions">
               配置 AI 生成内容
@@ -994,6 +998,11 @@ async function loadAll() {
       </el-row>
     </el-card>
   </div>
+
+  <!-- 活动讨论（实时聊天） -->
+  <el-drawer v-model="chatVisible" title="活动讨论" size="420px" destroy-on-close>
+    <ActivityChat v-if="chatVisible" :activity-id="id" />
+  </el-drawer>
 
   <!-- 事件记录表单 -->
   <el-dialog v-model="eventFormVisible" title="记录活动事件" width="520px">

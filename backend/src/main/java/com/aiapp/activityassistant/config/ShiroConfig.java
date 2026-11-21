@@ -79,6 +79,8 @@ public class ShiroConfig {
         chain.put("/auth/reset-password", "anon");
         // 上传文件静态映射
         chain.put("/uploads/**", "anon");
+        // WebSocket 握手：鉴权在 ChatHandshakeInterceptor 内按 token 查询参数自行完成
+        chain.put("/ws/**", "anon");
         // Knife4j / OpenAPI 文档
         chain.put("/doc.html", "anon");
         chain.put("/v3/api-docs/**", "anon");

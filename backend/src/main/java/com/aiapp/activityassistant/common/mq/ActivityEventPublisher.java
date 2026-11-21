@@ -1,5 +1,6 @@
 package com.aiapp.activityassistant.common.mq;
 
+import com.aiapp.activityassistant.service.DashboardService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class ActivityEventPublisher {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final DashboardService dashboardService;
 
     /** ownerId：大屏数据归属人（活动创建人），为空表示无需推送 */
     public void publish(ActivityEventType type, Long ownerId, Long activityId, String content) {
@@ -48,8 +50,9 @@ public class ActivityEventPublisher {
                         }
                     });
         } catch (Exception e) {
-            // 消息只影响大屏，投递失败不阻断业务
-            log.warn("[事件] 投递异常 type={}, ownerId={}", type, ownerId, e);
+            // Kafka 不可用（如本地未启动 broker）时直接本地刷新大屏，功能不受影响
+            log.warn("[事件] Kafka 不可用，改为本地刷新大屏 type={}, ownerId={}", type, ownerId);
+            dashboardService.recordEvent(ownerId, type.getDescription(), content);
         }
     }
 }

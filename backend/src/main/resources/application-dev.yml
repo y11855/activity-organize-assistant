@@ -51,6 +51,9 @@ spring:
       # acks=1：主副本写入即确认，兼顾可靠性与大屏场景的吞吐
       acks: 1
       retries: 2
+      properties:
+        # 本地未启动 Kafka 时快速失败，避免业务请求阻塞等待元数据 60 秒
+        max.block.ms: 1000
     consumer:
       group-id: activity-assistant-dashboard
       # 大屏不关心历史事件，从最新消息开始消费
@@ -63,6 +66,11 @@ spring:
       missing-topics-fatal: false
     admin:
       fail-fast: false
+      properties:
+        # 本地没起 Kafka 时立即失败：不重试、单次 2 秒超时，建主题失败只告警不阻塞启动
+        retries: 0
+        request.timeout.ms: 2000
+        default.api.timeout.ms: 3000
   data:
     redis:
       host: ${REDIS_HOST:localhost}

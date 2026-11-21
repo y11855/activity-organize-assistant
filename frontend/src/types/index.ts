@@ -346,3 +346,13 @@ export interface DashboardOverviewVO {
   registrationTrend: DashboardTrendItem[]
   recentEvents: DashboardEventItem[]
 }
+
+/** 活动群聊消息 */
+export interface ChatMessageVO {
+  id: string
+  activityId: string
+  senderId: string
+  senderName: string
+  content: string
+  createTime: string
+}
