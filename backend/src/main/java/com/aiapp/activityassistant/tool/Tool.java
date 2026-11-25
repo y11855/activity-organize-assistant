@@ -3,8 +3,7 @@ package com.aiapp.activityassistant.tool;
 import java.util.Map;
 
 /**
- * 工具调用统一接口
- * 每个工具实现幂等调用，避免重复操作（如重复发消息）
+ * AI 工具调用：工具统一接口，每个工具实现幂等调用，避免重复操作（如重复发消息）。
  */
 public interface Tool {
 

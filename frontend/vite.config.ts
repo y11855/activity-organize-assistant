@@ -1,3 +1,4 @@
+// Vite 构建配置：开发代理、CDN base、Element Plus 自动导入、分包
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -43,6 +44,12 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: false,
+      // 关闭 modulepreload：预热用的 link 与真实 import 的 CORS 模式不一致时，
+      // 浏览器不复用预加载结果，同一个文件会被下载两次（实测每个懒加载依赖都重复）
+      modulePreload: false,
+      // 合并 CSS：Element Plus 按组件拆分会生成十几个 2~3KB 的小 css，
+      // 3G 下每个都要一次独立往返（实测每个耗时 2.5 秒左右），合成一个文件更快
+      cssCodeSplit: false,
       rollupOptions: {
         output: {
           manualChunks: {

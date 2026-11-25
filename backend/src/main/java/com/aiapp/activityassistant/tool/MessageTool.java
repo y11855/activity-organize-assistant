@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * 消息工具：将提醒写入站内信（message 表），用户可在消息中心查看。
+ * AI 工具调用（消息工具）：将提醒写入站内信（message 表），用户可在消息中心查看。
  * 后续可扩展为多渠道分发（飞书机器人 / 邮件 / 短信），站内信作为保底渠道。
  */
 @Slf4j

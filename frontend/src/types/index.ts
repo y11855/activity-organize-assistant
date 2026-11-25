@@ -1,3 +1,4 @@
+// TypeScript 类型定义：业务实体、DTO 与接口返回值
 /** 用户信息 */
 export interface UserInfo {
   id: string
@@ -167,16 +168,6 @@ export interface ReminderVO {
   /** 0待触发 1已发送 2已取消 3发送失败 */
   status: number
   createTime: string
-}
-
-/** 创建提醒请求 */
-export interface ReminderCreateDTO {
-  activityId: string
-  title: string
-  content?: string
-  targetUserId?: string
-  targetUserName?: string
-  triggerTime: string
 }
 
 /** 用户（成员选择器） */

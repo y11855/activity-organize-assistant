@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 后台启用/禁用账号
+ * 请求 DTO：后台启用/禁用账号
  */
 @Data
 @Schema(description = "账号状态")

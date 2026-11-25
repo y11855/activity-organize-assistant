@@ -9,7 +9,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 任务派发请求
+ * 请求 DTO：任务派发
  */
 @Data
 @Schema(description = "任务派发请求")

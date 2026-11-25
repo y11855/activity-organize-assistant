@@ -1,3 +1,4 @@
+<!-- 报名看板页：查看问卷报名统计与报名明细并导出 -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'

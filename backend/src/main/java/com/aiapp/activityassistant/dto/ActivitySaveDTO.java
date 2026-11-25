@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 活动创建请求
+ * 请求 DTO：活动创建/编辑
  */
 @Data
 @Schema(description = "活动创建请求")

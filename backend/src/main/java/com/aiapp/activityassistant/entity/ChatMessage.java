@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 活动群聊消息
+ * MyBatis-Plus 实体：活动群聊消息（对应表 chat_message）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

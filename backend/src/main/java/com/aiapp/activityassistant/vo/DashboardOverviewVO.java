@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 数据大屏概览（当前登录账号维度）
+ * 响应 VO：数据大屏概览（当前登录账号维度）的展示数据结构
  */
 @Data
 public class DashboardOverviewVO {

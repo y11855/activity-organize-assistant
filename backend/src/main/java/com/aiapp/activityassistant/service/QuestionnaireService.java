@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 问卷业务接口
+ * 业务接口：报名问卷领域的能力定义
  */
 public interface QuestionnaireService extends IService<Questionnaire> {
 

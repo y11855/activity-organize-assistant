@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 活动结束反馈通知调度器
+ * 定时任务（Spring Scheduling）：活动结束反馈通知调度器
  * 每分钟扫描已到结束时间且未通知的「进行中」活动：
  * - 确保反馈问卷存在
  * - 给所有报名参与者发站内消息引导填写反馈

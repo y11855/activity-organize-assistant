@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 角色
+ * MyBatis-Plus 实体：角色（对应表 role）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

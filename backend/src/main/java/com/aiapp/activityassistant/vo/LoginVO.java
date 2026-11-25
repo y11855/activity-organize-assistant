@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 登录响应
+ * 响应 VO：登录响应的展示数据结构
  */
 @Data
 @Schema(description = "登录响应")

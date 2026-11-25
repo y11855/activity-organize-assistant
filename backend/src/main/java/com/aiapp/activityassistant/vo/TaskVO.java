@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 响应 VO：任务的展示数据结构
+ */
 @Data
 @Schema(description = "任务")
 public class TaskVO {

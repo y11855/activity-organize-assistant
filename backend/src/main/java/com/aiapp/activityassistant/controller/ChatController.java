@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 活动群聊：历史记录走 REST，实时消息走 WebSocket 广播
+ * Spring Web 控制器：活动群聊，历史记录走 REST，实时消息走 WebSocket 广播。
  */
 @Tag(name = "活动群聊")
 @RestController

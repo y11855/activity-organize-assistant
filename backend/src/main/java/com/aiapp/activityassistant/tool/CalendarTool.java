@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * 日历工具：将活动写入日历
+ * AI 工具调用（日历工具）：将活动写入日历。
  */
 @Component
 public class CalendarTool implements Tool {

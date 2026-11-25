@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 工具调用结果
+ * AI 工具调用：工具执行结果封装（成功标记 / 数据 / 错误信息）。
  */
 @Data
 @NoArgsConstructor

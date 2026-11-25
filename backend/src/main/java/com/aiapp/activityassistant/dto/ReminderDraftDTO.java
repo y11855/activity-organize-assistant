@@ -7,7 +7,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 提醒草稿（AI 生成待确认的提醒规则，确认发布后落库为定时提醒）
+ * 请求 DTO：提醒草稿（AI 生成待确认的提醒规则，确认发布后落库为定时提醒）
  */
 @Data
 @Schema(description = "提醒草稿")

@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 后台给角色分配权限
+ * 请求 DTO：后台给角色分配权限
  */
 @Data
 @Schema(description = "分配角色权限")

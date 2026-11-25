@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 任务分工
+ * MyBatis-Plus 实体：任务分工（对应表 task_assignment）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

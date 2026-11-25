@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 新建/编辑角色
+ * 请求 DTO：新建/编辑角色
  */
 @Data
 @Schema(description = "角色信息")

@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * 问卷管理
+ * Spring Web 控制器：问卷管理接口（生成、发布、填写、统计、导出等）。
  */
 @Tag(name = "问卷管理")
 @RestController

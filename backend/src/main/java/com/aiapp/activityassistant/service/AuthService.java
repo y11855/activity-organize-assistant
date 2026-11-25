@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.Objects;
 
 /**
- * 认证业务：登录签发 token、注册、登出、当前用户信息
+ * 业务实现：认证领域（登录签发 token、注册、登出、当前用户信息）
  */
 @Service
 @RequiredArgsConstructor

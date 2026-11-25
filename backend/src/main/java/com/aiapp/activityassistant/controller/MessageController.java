@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 站内消息
+ * Spring Web 控制器：站内消息接口（列表、未读数、标记已读）。
  */
 @Tag(name = "站内消息")
 @RestController

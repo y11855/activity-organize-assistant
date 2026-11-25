@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 当前用户上下文（权限控制用）
- * Web 请求由 {@code AuthInterceptor} 填充；异步线程（如 Agent 编排）需显式 set/clear。
+ * 当前登录用户上下文（ThreadLocal）：保存用户 ID、角色与权限编码，供权限控制使用。
+ * Web 请求由 Shiro 的 BearerTokenFilter 填充；异步线程（如 Agent 编排）需显式 set/clear。
  */
 public class UserContext {
 

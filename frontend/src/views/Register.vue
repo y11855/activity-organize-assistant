@@ -1,3 +1,4 @@
+<!-- 注册页：新用户账号注册 -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'

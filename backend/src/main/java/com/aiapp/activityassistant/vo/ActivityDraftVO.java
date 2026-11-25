@@ -10,7 +10,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * AI 生成内容草稿（待发起人确认/编辑，确认后正式发布）
+ * 响应 VO：AI 生成内容草稿的展示数据结构（待发起人确认/编辑，确认后正式发布）
  */
 @Data
 @Schema(description = "AI 生成内容草稿")

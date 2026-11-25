@@ -1,3 +1,5 @@
+# 应用主配置：服务端口与 context-path、MyBatis-Plus、文件上传限制、AI/工具/提醒业务参数、Knife4j 文档
+# 数据源、Redis、Kafka、Jasypt 加密等环境相关配置见 application-dev.yml（由 spring.profiles.active=dev 激活）
 server:
   port: 8080
   servlet:

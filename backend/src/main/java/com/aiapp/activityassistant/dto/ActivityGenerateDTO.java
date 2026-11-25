@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * AI 生成内容配置：发起人勾选需要 AI 生成的内容项
+ * 请求 DTO：AI 生成内容配置，勾选需要 AI 生成的内容项
  */
 @Data
 @Schema(description = "AI 生成内容配置")

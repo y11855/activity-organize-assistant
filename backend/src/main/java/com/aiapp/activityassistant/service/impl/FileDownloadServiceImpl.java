@@ -25,7 +25,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * 文件下载实现。
+ * 业务实现：文件下载的具体逻辑（HTTP Range 断点续传、ETag 校验与流式打包）。
  *
  * <p>断点续传依赖标准 HTTP Range：客户端带 {@code Range: bytes=start-} 时返回 206 与 Content-Range，
  * 暂停后再次请求即可从断点继续；同时返回 ETag（文件 SHA-256）与 Accept-Ranges，浏览器可做缓存与多段并发下载。</p>

@@ -1,7 +1,7 @@
 package com.aiapp.activityassistant.ai;
 
 /**
- * AI 消息体
+ * AI 能力：AI 消息体（多轮对话的角色与内容）。
  */
 public record AiMessage(String role, String content) {
 

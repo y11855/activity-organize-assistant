@@ -10,7 +10,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 提醒创建请求
+ * 请求 DTO：创建定时提醒
  */
 @Data
 @Schema(description = "提醒创建请求")

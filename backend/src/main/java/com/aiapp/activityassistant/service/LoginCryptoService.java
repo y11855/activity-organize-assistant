@@ -21,7 +21,7 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 
 /**
- * 登录密码传输加密：RSA 2048（公钥加密、私钥解密）。
+ * 业务实现：登录密码传输加密（RSA 2048，公钥加密、私钥解密）。
  *
  * <p>前端在发送登录请求前用公钥加密密码，后端用私钥解密后再做 BCrypt 校验，
  * 避免密码明文出现在网络请求中。密钥对在应用启动时生成、只存在于服务端内存，

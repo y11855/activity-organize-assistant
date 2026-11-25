@@ -10,7 +10,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 任务分工业务接口
+ * 业务接口：任务分工领域的能力定义
  */
 public interface TaskService extends IService<TaskAssignment> {
 

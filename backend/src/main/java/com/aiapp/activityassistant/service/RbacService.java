@@ -11,7 +11,7 @@ import com.aiapp.activityassistant.vo.UserAdminVO;
 import java.util.List;
 
 /**
- * RBAC：用户角色/权限查询与后台管理。
+ * 业务接口：RBAC 用户角色/权限查询与后台管理的能力定义
  */
 public interface RbacService {
 

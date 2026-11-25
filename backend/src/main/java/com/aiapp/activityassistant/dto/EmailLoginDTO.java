@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 邮箱验证码登录/绑定请求
+ * 请求 DTO：邮箱验证码登录/绑定的入参及校验规则
  */
 @Data
 @Schema(description = "邮箱验证码登录/绑定请求")

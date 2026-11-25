@@ -1,3 +1,4 @@
+<!-- 活动群聊组件：拉取历史消息 + WebSocket 实时收发 -->
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { listChatMessages, sendChatMessage } from '@/api/chat'

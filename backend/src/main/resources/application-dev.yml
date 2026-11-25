@@ -1,3 +1,4 @@
+# 开发环境配置：MySQL（Druid）数据源、Kafka 事件总线、Redis 缓存、Jasypt 配置加密
 spring:
   datasource:
     # 使用 Druid 连接池

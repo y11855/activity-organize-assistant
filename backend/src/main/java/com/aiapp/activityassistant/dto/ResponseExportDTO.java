@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 报名人员 Excel 导出模型
+ * 导出 DTO：报名人员 Excel 导出模型（EasyExcel 列定义）
  */
 @Data
 public class ResponseExportDTO {

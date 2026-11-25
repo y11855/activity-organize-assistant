@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+/**
+ * 响应 VO：单文件直传结果的展示数据结构
+ */
 @Data
 @AllArgsConstructor
 @Schema(description = "单文件直传结果")

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 活动事件日志（活动进行期间记录事件/亮点/问题，用于 AI 复盘）
+ * Spring Web 控制器：活动事件日志（活动期间记录事件/亮点/问题，用于 AI 复盘）。
  */
 @Tag(name = "活动事件日志")
 @RestController

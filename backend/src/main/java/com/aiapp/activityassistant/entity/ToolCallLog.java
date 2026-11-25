@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 工具调用日志（幂等与重试追踪）
+ * MyBatis-Plus 实体：工具调用日志（对应表 tool_call_log），用于幂等与重试追踪
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

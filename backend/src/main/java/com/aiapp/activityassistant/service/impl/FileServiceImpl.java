@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * 活动资料文件服务。
+ * 业务实现：活动资料文件服务（小文件直传 + 大文件分片上传，含断点续传与 SHA-256 校验）。
  *
  * <p>存储布局（都相对 app.upload-dir）：</p>
  * <pre>

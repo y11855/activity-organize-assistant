@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 提醒业务实现
+ * 业务实现：定时提醒领域的具体逻辑（幂等创建、到期触发、失败重试与事件发布）
  */
 @Slf4j
 @Service

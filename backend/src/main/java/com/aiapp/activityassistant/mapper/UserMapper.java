@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 用户 Mapper
+ * MyBatis-Plus Mapper：用户表（user）的数据访问接口
  */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {

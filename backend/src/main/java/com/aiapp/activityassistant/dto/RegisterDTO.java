@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 注册请求
+ * 请求 DTO：用户注册的入参及校验规则
  */
 @Data
 @Schema(description = "注册请求")

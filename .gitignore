@@ -47,6 +47,9 @@ frontend/src/types/components.d.ts
 backend/uploads/
 uploads/
 
+# ===== 本地数据库快照（含本地数据，禁止入库）=====
+backend/db/dump-local.sql
+
 # ===== 临时文件 =====
 *.tmp
 *.bak

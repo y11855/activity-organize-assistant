@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 发送聊天消息请求
+ * 请求 DTO：发送聊天消息（内容非空且不超过 500 字）
  */
 @Data
 @Schema(description = "发送聊天消息")

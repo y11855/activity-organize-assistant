@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 邮箱验证码发送请求
+ * 请求 DTO：发送邮箱验证码
  */
 @Data
 @Schema(description = "邮箱验证码发送请求")

@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 活动实体（聚合根）
+ * MyBatis-Plus 实体：活动聚合根（对应表 activity）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

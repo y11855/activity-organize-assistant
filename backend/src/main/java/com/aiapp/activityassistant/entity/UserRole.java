@@ -6,7 +6,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 用户-角色关联（联合主键，无逻辑删除）
+ * MyBatis-Plus 实体：用户-角色关联（对应表 user_role，联合主键，无逻辑删除）
  */
 @Data
 @TableName("user_role")

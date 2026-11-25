@@ -52,7 +52,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 活动业务实现
+ * 业务实现：活动领域的具体逻辑（权限校验、详情缓存、AI 草稿与发布编排）
  */
 @Slf4j
 @Service

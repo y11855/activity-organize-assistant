@@ -1,3 +1,4 @@
+<!-- 问卷填写页：渲染题目、校验并提交报名问卷 -->
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'

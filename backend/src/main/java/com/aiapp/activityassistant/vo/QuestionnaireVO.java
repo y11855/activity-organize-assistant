@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 响应 VO：问卷的展示数据结构
+ */
 @Data
 @Schema(description = "问卷")
 public class QuestionnaireVO {

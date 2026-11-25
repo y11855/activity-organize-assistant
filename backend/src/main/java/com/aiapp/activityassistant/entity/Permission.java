@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 权限
+ * MyBatis-Plus 实体：权限（对应表 permission）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

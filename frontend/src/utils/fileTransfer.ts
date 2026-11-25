@@ -1,3 +1,4 @@
+// 工具函数：文件直传/分片上传与断点续传流程
 import { useUserStore } from '@/stores'
 import { downloadBlob } from '@/utils'
 import { getChunkStatus, initChunkUpload, mergeChunks, uploadChunk } from '@/api/file'

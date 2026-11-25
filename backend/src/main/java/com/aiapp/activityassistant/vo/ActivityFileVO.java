@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 响应 VO：活动资料文件的展示数据结构
+ */
 @Data
 @Schema(description = "活动资料文件")
 public class ActivityFileVO {

@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 提醒业务接口
+ * 业务接口：定时提醒领域的能力定义
  */
 public interface ReminderService extends IService<Reminder> {
 

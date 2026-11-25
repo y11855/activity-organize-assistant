@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 活动管理
+ * Spring Web 控制器：活动管理接口（创建、AI 草稿、发布、取消、复盘等）。
  */
 @Tag(name = "活动管理")
 @RestController

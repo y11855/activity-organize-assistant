@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 用户业务实现
+ * 业务实现：用户领域的具体逻辑（按用户名/邮箱查询、启用用户列表）
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {

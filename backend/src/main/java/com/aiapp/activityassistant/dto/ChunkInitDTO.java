@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 分片上传初始化参数：客户端只报文件名和大小，分片大小由服务端统一决定，
+ * 请求 DTO：分片上传初始化参数。客户端只报文件名和大小，分片大小由服务端统一决定，
  * 避免不同客户端切分出无法合并的分片。
  */
 @Data

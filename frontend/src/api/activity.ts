@@ -1,3 +1,4 @@
+// Axios 接口封装：活动相关的后端请求（列表、详情、创建、取消、AI 生成等）
 import { request } from './request'
 import type {
   ActivityVO,

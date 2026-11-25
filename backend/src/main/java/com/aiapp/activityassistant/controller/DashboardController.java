@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 数据大屏：仅返回当前登录账号相关的数据
+ * Spring Web 控制器：数据大屏，仅返回当前登录账号相关的数据。
  */
 @Tag(name = "数据大屏")
 @RestController

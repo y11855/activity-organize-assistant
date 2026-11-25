@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 工具调度器：统一管理工具调用，提供幂等保障与失败重试
+ * AI 工具调用（调度器）：统一管理工具调用，提供幂等保障与失败重试
  *
  * 幂等策略（两层）：
  * 1. Redis：成功结果缓存直接返回；SET NX 原子抢占执行权，防止并发重复执行

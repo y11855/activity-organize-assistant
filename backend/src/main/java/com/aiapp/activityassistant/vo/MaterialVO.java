@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * 响应 VO：物料项的展示数据结构
+ */
 @Data
 @Schema(description = "物料项")
 public class MaterialVO {

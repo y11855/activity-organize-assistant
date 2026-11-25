@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 活动事件记录 VO
+ * 响应 VO：活动事件记录的展示数据结构
  */
 @Data
 @Schema(description = "活动事件记录")

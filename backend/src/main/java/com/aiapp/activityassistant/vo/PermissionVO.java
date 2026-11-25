@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 权限（后台）
+ * 响应 VO：后台权限的展示数据结构
  */
 @Data
 @Schema(description = "权限")

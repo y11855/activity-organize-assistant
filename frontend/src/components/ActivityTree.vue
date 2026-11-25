@@ -1,3 +1,4 @@
+<!-- 活动分解树组件：展示子活动、活动文件、问卷与事件日志 -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { getActivityDetail, listEventLogs } from '@/api/activity'

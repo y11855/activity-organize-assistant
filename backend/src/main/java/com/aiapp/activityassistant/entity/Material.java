@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.math.BigDecimal;
 
 /**
- * 物料清单项
+ * MyBatis-Plus 实体：物料清单项（对应表 material）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

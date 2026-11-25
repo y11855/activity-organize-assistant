@@ -7,7 +7,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * 社团/班级活动组织 AI 助手 - 启动类
+ * Spring Boot 启动类：社团/班级活动组织 AI 助手（活动管家）应用入口。
+ * 开启异步任务与定时调度，并扫描 MyBatis Mapper。
  */
 @SpringBootApplication
 @EnableAsync

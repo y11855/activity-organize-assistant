@@ -1,3 +1,4 @@
+// Vue 应用入口：挂载插件、路由与全局样式
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersist from 'pinia-plugin-persistedstate'

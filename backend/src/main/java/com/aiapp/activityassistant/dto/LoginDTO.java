@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 登录请求
+ * 请求 DTO：用户名密码登录（含图形验证码）的入参
  */
 @Data
 @Schema(description = "登录请求")

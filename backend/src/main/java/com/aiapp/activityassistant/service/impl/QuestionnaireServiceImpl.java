@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 问卷业务实现
+ * 业务实现：报名问卷领域的具体逻辑（生成、发布、答卷提交、统计与 Excel 导出）
  */
 @Service
 @RequiredArgsConstructor

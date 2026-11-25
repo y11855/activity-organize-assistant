@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Bearer Token 认证过滤器：从 {@code Authorization} 头取出 token 交给 Shiro 认证，
+ * Shiro 框架（Bearer Token 过滤器）：从 {@code Authorization} 头取出 token 交给 Shiro 认证，
  * 认证成功后填充 {@link UserContext}，请求结束时清理，避免 ThreadLocal 泄漏。
  *
  * <p>不使用 Shiro Session：每个请求凭 token 重新认证，保持完全无状态。</p>

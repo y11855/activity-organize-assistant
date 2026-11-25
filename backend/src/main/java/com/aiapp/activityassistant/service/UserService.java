@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 用户业务接口
+ * 业务接口：用户领域的能力定义
  */
 public interface UserService extends IService<User> {
 

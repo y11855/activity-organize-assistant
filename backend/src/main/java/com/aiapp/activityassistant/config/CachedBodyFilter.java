@@ -18,7 +18,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 /**
- * JSON 请求体缓存过滤器。
+ * 幂等控制（请求体缓存过滤器）：缓存 JSON 请求体并计算 SHA-256 摘要。
  * <p>请求体在 Servlet 流中只能读一次，而幂等拦截器需要先读请求体算摘要、
  * 控制器随后还要反序列化，因此在这里提前读出字节并包装成可重复读取的请求。</p>
  * <p>只处理 application/json，文件上传等大请求体不参与缓存。</p>

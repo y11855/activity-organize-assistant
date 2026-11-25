@@ -13,12 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * 活动群聊：消息落库 + 历史查询。
+ * 业务实现：活动群聊领域的具体逻辑（权限校验、消息落库与历史查询）。
  * 实时推送由 {@code ChatSocketHandler} 负责，本类只处理持久化与权限校验。
  */
 @Service

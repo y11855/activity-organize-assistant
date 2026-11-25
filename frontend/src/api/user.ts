@@ -1,3 +1,4 @@
+// Axios 接口封装：用户列表等用户相关信息请求
 import { request } from './request'
 import type { UserSimpleVO } from '@/types'
 

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 站内消息业务实现
+ * 业务实现：站内消息领域的具体逻辑（发送、列表、未读数与已读标记）
  */
 @Service
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {

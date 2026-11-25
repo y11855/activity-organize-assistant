@@ -17,7 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.time.Duration;
 
 /**
- * 幂等拦截器：拦截标注 @Idempotent 的接口。
+ * 幂等控制（拦截器）：拦截标注 @Idempotent 的接口。
  * key = idem:{prefix}:{userId}:{sha256(METHOD|URI|查询串|请求体摘要)}，通过 Redis SET NX EX 原子抢占。
  * 请求体摘要由 {@link CachedBodyFilter} 提前计算；无请求体时兼容 X-Request-Id 头（供外部重试复用同一 key）。
  * 相同用户 + 相同路径 + 相同参数在 ttl 内只放行一次，可拦住前端连续点击造成的重复提交。

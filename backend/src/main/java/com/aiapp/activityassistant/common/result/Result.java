@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 统一响应结果
+ * 统一响应封装：所有接口返回的通用结构（code / message / data / timestamp）。
  */
 @Data
 public class Result<T> implements Serializable {

@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 活动事件日志：活动进行期间发起人记录的事件/关键节点/问题/亮点，用于 AI 复盘输入
+ * MyBatis-Plus 实体：活动事件日志（对应表 activity_event_log），记录活动期间的事件/关键节点/问题/亮点，作为 AI 复盘输入
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

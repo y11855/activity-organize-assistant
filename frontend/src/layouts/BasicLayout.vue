@@ -1,3 +1,4 @@
+<!-- 基础布局组件：侧边菜单 + 顶栏 + 消息中心，承载业务页面出口 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

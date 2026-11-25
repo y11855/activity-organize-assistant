@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 聊天消息
+ * 响应 VO：聊天消息的展示数据结构
  */
 @Data
 @Schema(description = "聊天消息")

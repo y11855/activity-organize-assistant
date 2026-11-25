@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 业务实现：活动事件日志领域的具体逻辑（权限校验、记录增删与 VO 组装）
+ */
 @Service
 @RequiredArgsConstructor
 public class ActivityEventLogServiceImpl implements ActivityEventLogService {

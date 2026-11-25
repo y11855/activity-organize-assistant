@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 
 /**
- * 邮箱验证码服务：6 位数字，Redis 存 5 分钟，60 秒重发限制，校验后立即删除（一次性）。
+ * 业务实现：邮箱验证码服务（6 位数字，Redis 存 5 分钟，60 秒重发限制，校验后立即删除（一次性））
  * 通过 SMTP 发送真实邮件，发件账号由 spring.mail.username/password 配置。
  */
 @Slf4j

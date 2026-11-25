@@ -13,7 +13,7 @@ import java.time.Duration;
 import java.util.Base64;
 
 /**
- * 验证码服务：图形验证码（防暴力破解）
+ * 业务实现：图形验证码服务（防暴力破解）
  * 生成 base64 图片，答案存 Redis，2 分钟过期，校验后立即删除（一次性）。
  * 邮箱验证码见 {@link EmailCodeService}。
  */

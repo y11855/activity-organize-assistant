@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 后台角色与权限管理
+ * Spring Web 控制器：后台角色与权限管理接口。
  */
 @Tag(name = "后台-角色权限")
 @RestController

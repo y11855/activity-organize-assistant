@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 数据大屏业务实现：所有查询都以传入 userId 为归属人，不返回他人数据。
+ * 业务实现：数据大屏领域的具体逻辑（Redis 缓存与实时动态聚合），所有查询都以传入 userId 为归属人，不返回他人数据。
  */
 @Service
 @RequiredArgsConstructor

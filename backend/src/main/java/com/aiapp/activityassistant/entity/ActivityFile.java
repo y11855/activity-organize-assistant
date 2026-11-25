@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 活动资料文件（参与者上传的策划书、PPT、小票照片等）
+ * MyBatis-Plus 实体：活动资料文件（对应表 activity_file，含参与者上传的策划书、PPT、小票照片等）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

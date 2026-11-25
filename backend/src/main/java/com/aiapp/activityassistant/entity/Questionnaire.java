@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 报名问卷
+ * MyBatis-Plus 实体：报名问卷（对应表 questionnaire）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

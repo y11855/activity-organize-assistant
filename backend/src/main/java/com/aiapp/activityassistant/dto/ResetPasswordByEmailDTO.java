@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 忘记密码：通过邮箱验证码重置密码
+ * 请求 DTO：忘记密码时通过邮箱验证码重置密码
  */
 @Data
 @Schema(description = "通过邮箱验证码重置密码")

@@ -3,7 +3,7 @@ package com.aiapp.activityassistant.ai;
 import java.util.List;
 
 /**
- * 大模型统一接口
+ * AI 能力：大模型统一接口，屏蔽不同厂商实现的差异。
  */
 public interface AiProvider {
 

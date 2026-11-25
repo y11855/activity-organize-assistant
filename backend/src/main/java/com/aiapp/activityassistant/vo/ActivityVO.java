@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 活动详情 VO
+ * 响应 VO：活动详情的展示数据结构
  */
 @Data
 @Schema(description = "活动详情")

@@ -1,3 +1,4 @@
+<!-- 我参与的活动页：展示当前用户已报名参与的活动 -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

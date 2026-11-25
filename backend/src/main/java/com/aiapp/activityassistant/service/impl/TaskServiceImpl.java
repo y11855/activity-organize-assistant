@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 任务分工业务实现
+ * 业务实现：任务分工领域的具体逻辑（权限校验、派发、完成与缓存失效）
  */
 @Service
 @RequiredArgsConstructor

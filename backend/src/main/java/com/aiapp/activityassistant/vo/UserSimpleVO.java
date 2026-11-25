@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 用户简要信息（成员选择器用，不暴露密码等敏感字段）
+ * 响应 VO：用户简要信息（成员选择器用，不暴露密码等敏感字段）
  */
 @Data
 @Schema(description = "用户简要信息")

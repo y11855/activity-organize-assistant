@@ -1,3 +1,4 @@
+// Axios 接口封装：活动文件上传（直传/分片）与下载相关请求
 import type { AxiosProgressEvent } from 'axios'
 import service from './request'
 import type { ActivityFileVO, ChunkInitVO, ChunkStatusVO, FileUploadVO } from '@/types'

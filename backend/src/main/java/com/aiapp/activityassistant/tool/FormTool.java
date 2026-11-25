@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * 表单工具：创建报名问卷/表单
+ * AI 工具调用（表单工具）：创建报名问卷/表单。
  */
 @Component
 public class FormTool implements Tool {

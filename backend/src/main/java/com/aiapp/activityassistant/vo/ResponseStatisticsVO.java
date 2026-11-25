@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 报名统计看板 VO
+ * 响应 VO：报名统计看板的展示数据结构
  */
 @Data
 @Schema(description = "报名统计看板")

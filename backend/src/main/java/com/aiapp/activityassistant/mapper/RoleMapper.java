@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
+/**
+ * MyBatis-Plus Mapper：角色表（role）的数据访问接口
+ */
 @Mapper
 public interface RoleMapper extends BaseMapper<Role> {
 

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 /**
- * 提醒任务调度器
+ * 定时任务（Spring Scheduling）：提醒任务调度器
  * 每分钟扫描一次到期提醒并触发；Redis 锁保证多实例部署 / 上一轮未结束时不重复扫描
  */
 @Slf4j

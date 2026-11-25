@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 角色（后台）
+ * 响应 VO：后台角色的展示数据结构
  */
 @Data
 @Schema(description = "角色")

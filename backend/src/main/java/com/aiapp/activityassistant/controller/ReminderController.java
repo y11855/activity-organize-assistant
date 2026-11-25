@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 提醒管理
+ * Spring Web 控制器：提醒管理接口（创建、取消、查询）。
  */
 @Tag(name = "提醒管理")
 @RestController

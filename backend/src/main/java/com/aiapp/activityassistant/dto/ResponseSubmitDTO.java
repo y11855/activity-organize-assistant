@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 问卷答卷提交请求
+ * 请求 DTO：问卷答卷提交
  */
 @Data
 @Schema(description = "问卷答卷提交请求")

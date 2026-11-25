@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 定时提醒任务
+ * MyBatis-Plus 实体：定时提醒任务（对应表 reminder）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -1,3 +1,4 @@
+<!-- 活动资料页：文件列表、上传（含分片）与下载 -->
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

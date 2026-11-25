@@ -1,3 +1,4 @@
+<!-- 登录页：密码/邮箱验证码登录、图形验证码与找回密码 -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 我的任务（个人分工视图）
+ * 响应 VO：我的任务（个人分工视图）的展示数据结构
  */
 @Data
 @Schema(description = "我的任务")

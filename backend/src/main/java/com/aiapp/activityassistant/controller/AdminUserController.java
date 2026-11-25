@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 后台用户管理
+ * Spring Web 控制器：后台用户管理接口（分页、新建、角色分配、状态、密码）。
  */
 @Tag(name = "后台-用户管理")
 @RestController

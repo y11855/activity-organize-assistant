@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 断点续传查询结果：客户端据此跳过已上传分片
+ * 响应 VO：分片上传进度（断点续传查询结果，客户端据此跳过已上传分片）
  */
 @Data
 @Schema(description = "分片上传进度")

@@ -1,3 +1,4 @@
+// Axios 接口封装：消息中心（我的消息、未读数、标记已读）
 import { request } from './request'
 import type { MessageVO } from '@/types'
 

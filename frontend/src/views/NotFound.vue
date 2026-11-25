@@ -1,3 +1,4 @@
+<!-- 404 页面不存在提示页 -->
 <script setup lang="ts">
 // 404
 </script>

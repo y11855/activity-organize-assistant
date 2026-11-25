@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * 根据 application.yml 中 activity-assistant.ai.provider 动态选择实现
+ * AI 能力（Provider 路由）：根据 application.yml 中 activity-assistant.ai.provider 动态选择实现
  */
 @Component
 public class AiProviderRouter {

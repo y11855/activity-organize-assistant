@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 后台给用户分配角色
+ * 请求 DTO：后台给用户分配角色
  */
 @Data
 @Schema(description = "分配用户角色")

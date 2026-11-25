@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 用户
+ * Spring Web 控制器：用户接口（成员选择器所需的启用用户列表）。
  */
 @Tag(name = "用户")
 @RestController

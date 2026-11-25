@@ -6,7 +6,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * 幂等键生成工具
+ * 幂等控制（工具类）：基于业务参数生成 SHA-256 幂等键。
  */
 @Component
 public class IdempotentKeyGenerator {

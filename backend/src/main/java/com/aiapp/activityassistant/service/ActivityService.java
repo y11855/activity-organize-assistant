@@ -13,7 +13,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 活动业务接口
+ * 业务接口：活动领域的能力定义
  */
 public interface ActivityService extends IService<Activity> {
 

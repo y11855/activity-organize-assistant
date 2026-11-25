@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Set;
 
 /**
- * 登录 token 的签发、解析与吊销（Redis 存储）。
+ * 业务实现：登录 token 的签发、解析与吊销（Redis 存储）。
  */
 @Service
 @RequiredArgsConstructor

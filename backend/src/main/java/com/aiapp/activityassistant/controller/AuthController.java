@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 认证
+ * Spring Web 控制器：认证接口（登录、注册、验证码、邮箱绑定、重置密码等）。
  */
 @Tag(name = "认证")
 @RestController

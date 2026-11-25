@@ -5,7 +5,7 @@ import com.aiapp.activityassistant.vo.ChatMessageVO;
 import java.util.List;
 
 /**
- * 活动群聊
+ * 业务接口：活动群聊领域的能力定义
  */
 public interface ChatService {
 

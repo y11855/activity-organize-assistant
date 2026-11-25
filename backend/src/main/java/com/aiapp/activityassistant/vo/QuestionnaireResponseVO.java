@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 报名人员明细 VO
+ * 响应 VO：报名人员明细的展示数据结构
  */
 @Data
 @Schema(description = "报名人员明细")

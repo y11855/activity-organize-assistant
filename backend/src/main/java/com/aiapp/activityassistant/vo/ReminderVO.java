@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 响应 VO：提醒的展示数据结构
+ */
 @Data
 @Schema(description = "提醒")
 public class ReminderVO {

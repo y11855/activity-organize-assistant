@@ -1,3 +1,4 @@
+// 工具函数：日期格式化、防抖、Blob 下载等通用方法
 import dayjs from 'dayjs'
 
 /** 时间格式化 */

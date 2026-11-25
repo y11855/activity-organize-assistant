@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * OpenAI 适配
+ * AI 能力（OpenAI Provider）：OpenAI 适配。
  */
 @Component
 public class OpenAiProvider implements AiProvider {

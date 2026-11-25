@@ -3,7 +3,7 @@ package com.aiapp.activityassistant.service;
 import com.aiapp.activityassistant.vo.DashboardOverviewVO;
 
 /**
- * 数据大屏业务接口（数据范围限定为传入账号本人）
+ * 业务接口：数据大屏领域的能力定义（数据范围限定为传入账号本人）
  */
 public interface DashboardService {
 

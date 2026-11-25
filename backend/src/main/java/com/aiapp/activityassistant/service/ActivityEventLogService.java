@@ -6,7 +6,7 @@ import com.aiapp.activityassistant.vo.ActivityEventLogVO;
 import java.util.List;
 
 /**
- * 活动事件日志业务接口
+ * 业务接口：活动事件日志领域的能力定义
  */
 public interface ActivityEventLogService {
 

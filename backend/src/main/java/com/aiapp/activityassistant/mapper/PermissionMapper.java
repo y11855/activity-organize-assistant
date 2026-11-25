@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
+/**
+ * MyBatis-Plus Mapper：权限表（permission）的数据访问接口
+ */
 @Mapper
 public interface PermissionMapper extends BaseMapper<Permission> {
 

@@ -1,3 +1,4 @@
+<!-- 数据大屏页：ECharts 展示活动状态分布、报名趋势与实时动态 -->
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import * as echarts from 'echarts'

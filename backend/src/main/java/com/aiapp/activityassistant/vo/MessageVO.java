@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 站内消息（仅暴露前端需要的字段）
+ * 响应 VO：站内消息的展示数据结构（仅暴露前端需要的字段）
  */
 @Data
 @Schema(description = "站内消息")

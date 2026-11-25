@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * 本地 Ollama 适配
+ * AI 能力（Ollama Provider）：本地 Ollama 适配。
  */
 @Component
 public class OllamaProvider implements AiProvider {

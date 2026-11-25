@@ -10,7 +10,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 后台新建用户
+ * 请求 DTO：后台新建用户
  */
 @Data
 @Schema(description = "后台新建用户")

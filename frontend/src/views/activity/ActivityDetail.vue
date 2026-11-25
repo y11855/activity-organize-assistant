@@ -1,3 +1,4 @@
+<!-- 活动详情页：查看活动信息与任务分工、AI 生成内容编辑发布 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

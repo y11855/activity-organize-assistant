@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 后台用户列表项
+ * 响应 VO：后台用户列表项的展示数据结构
  */
 @Data
 @Schema(description = "后台用户")

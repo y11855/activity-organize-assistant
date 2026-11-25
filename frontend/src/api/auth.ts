@@ -1,3 +1,4 @@
+// Axios 接口封装：登录、注册、验证码与找回密码等认证请求
 import { request } from './request'
 import type { LoginVO } from '@/types'
 

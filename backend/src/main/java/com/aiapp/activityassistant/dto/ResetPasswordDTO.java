@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * 后台重置密码
+ * 请求 DTO：后台重置密码
  */
 @Data
 @Schema(description = "重置密码")

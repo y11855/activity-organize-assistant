@@ -1,3 +1,4 @@
+// Axios 接口封装：活动群聊消息的拉取与发送
 import { request } from './request'
 import type { ChatMessageVO } from '@/types'
 

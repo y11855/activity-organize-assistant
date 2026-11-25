@@ -4,7 +4,7 @@ import com.aiapp.activityassistant.common.result.ResultCode;
 import lombok.Getter;
 
 /**
- * 自定义业务异常
+ * 业务异常：封装业务错误码与提示信息，由 GlobalExceptionHandler 统一转换为响应。
  */
 @Getter
 public class BusinessException extends RuntimeException {

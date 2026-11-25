@@ -1,3 +1,4 @@
+// 工具函数：登录密码 RSA 加密（获取公钥并加密）
 import JSEncrypt from 'jsencrypt'
 import { request } from '@/api/request'
 

@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * 文件传输：小文件直传 / 大文件分片上传（含断点续传、分片校验）/ Range 下载 / 打包下载
+ * Spring Web 控制器：文件传输，小文件直传 / 大文件分片上传（含断点续传、分片校验）/ Range 下载 / 打包下载。
  */
 @Tag(name = "文件传输")
 @RestController

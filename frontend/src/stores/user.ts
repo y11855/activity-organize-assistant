@@ -1,3 +1,4 @@
+// Pinia 状态管理：用户登录态、token 与用户信息
 import { defineStore } from 'pinia'
 import type { LoginVO, UserInfo } from '@/types'
 

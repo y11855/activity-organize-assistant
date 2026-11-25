@@ -1,3 +1,4 @@
+<!-- 我创建的活动列表页：发起活动、取消活动、查看活动分解树 -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

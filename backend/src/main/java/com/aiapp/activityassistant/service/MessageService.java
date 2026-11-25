@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import java.util.List;
 
 /**
- * 站内消息业务接口
+ * 业务接口：站内消息领域的能力定义
  */
 public interface MessageService extends IService<Message> {
 

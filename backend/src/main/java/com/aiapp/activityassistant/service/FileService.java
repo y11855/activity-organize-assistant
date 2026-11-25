@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * 活动资料：小文件直传 + 大文件分片上传（含断点续传与分片校验）
+ * 业务接口：活动资料文件领域的能力定义，小文件直传 + 大文件分片上传（含断点续传与分片校验）
  */
 public interface FileService {
 

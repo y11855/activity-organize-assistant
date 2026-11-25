@@ -8,7 +8,7 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 问卷回答（报名记录）
+ * MyBatis-Plus 实体：问卷回答/报名记录（对应表 questionnaire_response）
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

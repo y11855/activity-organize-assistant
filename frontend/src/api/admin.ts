@@ -1,3 +1,4 @@
+// Axios 接口封装：后台用户、角色与权限管理相关的请求
 import { request } from './request'
 import type { PageVO, PermissionVO, RoleVO, UserAdminVO } from '@/types'
 

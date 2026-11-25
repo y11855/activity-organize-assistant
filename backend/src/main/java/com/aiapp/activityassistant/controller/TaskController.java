@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 任务分工
+ * Spring Web 控制器：任务分工相关接口（派发、完成、按活动 / 我的任务查询）。
  */
 @Tag(name = "任务分工")
 @RestController

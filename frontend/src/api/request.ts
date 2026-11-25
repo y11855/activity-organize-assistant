@@ -1,3 +1,4 @@
+// Axios 实例封装：统一 baseURL、token 注入、响应解包与错误提示
 import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,

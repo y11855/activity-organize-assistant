@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 问卷题目草稿（AI 生成待确认，可编辑）
+ * 请求 DTO：问卷题目草稿（AI 生成待确认，可编辑）
  */
 @Data
 @Schema(description = "问卷题目草稿")

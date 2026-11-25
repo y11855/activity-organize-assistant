@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * 文件下载：HTTP Range 断点续传 + 多文件流式打包
+ * 业务接口：文件下载领域的能力定义，支持 HTTP Range 断点续传与多文件流式打包
  */
 public interface FileDownloadService {
 

@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 阿里通义千问适配（DashScope 文本生成 API）
+ * AI 能力（通义千问 Provider）：阿里通义千问适配（DashScope 文本生成 API）。
  * 文档：https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api
  */
 @Slf4j

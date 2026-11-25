@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 启动预热：把高频读取的数据提前写入 Redis（内存数据库），
+ * Spring Boot 启动预热（ApplicationRunner）：把高频读取的数据提前写入 Redis（内存数据库），
  * 避免用户首次请求时集中查库。
  * <p>1. 启用用户的 RBAC 角色/权限码缓存（每个请求都会用到，30 分钟过期）<br>
  * 2. 活动创建人的大屏概览基线（供数据大屏首屏秒开）</p>

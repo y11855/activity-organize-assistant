@@ -5,7 +5,7 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 /**
- * 系统状态码。
+ * 统一响应封装：系统状态码枚举，定义业务码与 HTTP 状态码的映射。
  *
  * <p><b>编码规范</b>：
  * <ul>

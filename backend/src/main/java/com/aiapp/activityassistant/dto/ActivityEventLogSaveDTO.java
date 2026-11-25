@@ -9,7 +9,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 活动事件记录 DTO
+ * 请求 DTO：活动事件记录的入参及校验规则
  */
 @Data
 public class ActivityEventLogSaveDTO {
