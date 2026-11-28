@@ -8,7 +8,7 @@ import { listUsers } from '@/api/user'
 import { useUserStore } from '@/stores'
 import ActivityTree from '@/components/ActivityTree.vue'
 import type { ActivityVO, ActivitySaveDTO, UserSimpleVO } from '@/types'
-import { debounce, formatDate } from '@/utils'
+import { ACTIVITY_TAGS, debounce, formatDate } from '@/utils'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -23,9 +23,11 @@ const userOptions = ref<UserSimpleVO[]>([])
 const form = ref<ActivitySaveDTO>({
   title: '',
   description: '',
+  introduction: '',
   startTime: '',
   endTime: '',
   location: '',
+  tag: '',
   expectedCount: undefined,
   memberIds: []
 })
@@ -91,6 +93,10 @@ const onCreate = debounce(async () => {
     ElMessage.warning('请输入活动标题')
     return
   }
+  if (!form.value.tag) {
+    ElMessage.warning('请选择活动属性标签')
+    return
+  }
 
   creating.value = true
   try {
@@ -100,9 +106,11 @@ const onCreate = debounce(async () => {
     form.value = {
       title: '',
       description: '',
+      introduction: '',
       startTime: '',
       endTime: '',
       location: '',
+      tag: '',
       expectedCount: undefined,
       memberIds: []
     }
@@ -174,6 +182,12 @@ onMounted(loadList)
         </template>
       </el-table-column>
       <el-table-column prop="location" label="地点" min-width="110" />
+      <el-table-column label="属性标签" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.tagName" size="small" effect="plain">{{ row.tagName }}</el-tag>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="人数" width="80" align="center">
         <template #default="{ row }">{{ row.expectedCount ?? '-' }}</template>
       </el-table-column>
@@ -212,26 +226,64 @@ onMounted(loadList)
     </div>
   </el-card>
 
-  <el-dialog v-model="dialogVisible" title="发起活动" width="520px">
-    <el-form :model="form" label-width="90px">
+  <el-dialog v-model="dialogVisible" title="发起活动" width="680px" destroy-on-close>
+    <el-form :model="form" label-width="90px" class="create-form">
       <el-form-item label="活动标题" required>
-        <el-input v-model="form.title" placeholder="例如：中秋班级联欢晚会" />
+        <el-input v-model="form.title" maxlength="100" show-word-limit placeholder="例如：中秋班级联欢晚会" />
       </el-form-item>
       <el-form-item label="描述">
-        <el-input v-model="form.description" type="textarea" :rows="3" placeholder="一句话描述活动，AI 将自动生成策划与分工" />
+        <el-input
+          v-model="form.description"
+          type="textarea"
+          :autosize="{ minRows: 2, maxRows: 5 }"
+          maxlength="500"
+          show-word-limit
+          placeholder="一句话描述活动，AI 将自动生成策划与分工"
+        />
       </el-form-item>
-      <el-form-item label="开始时间">
-        <el-date-picker v-model="form.startTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" />
+      <el-form-item label="活动介绍">
+        <el-input
+          v-model="form.introduction"
+          type="textarea"
+          :autosize="{ minRows: 3, maxRows: 8 }"
+          maxlength="2000"
+          show-word-limit
+          placeholder="向参与者介绍活动是做什么的、有什么亮点，吸引报名。可留空，稍后用 AI 生成"
+        />
       </el-form-item>
-      <el-form-item label="结束时间">
-        <el-date-picker v-model="form.endTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" />
+      <div class="create-form__row">
+        <el-form-item label="开始时间">
+          <el-date-picker
+            v-model="form.startTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="开始时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="结束时间">
+          <el-date-picker
+            v-model="form.endTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="结束时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </div>
+      <el-form-item label="属性标签" required>
+        <el-select v-model="form.tag" placeholder="选择活动类型，用于报名页展示与个性化推荐" style="width: 100%">
+          <el-option v-for="t in ACTIVITY_TAGS" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
       </el-form-item>
-      <el-form-item label="地点">
-        <el-input v-model="form.location" placeholder="例如：教学楼 A301" />
-      </el-form-item>
-      <el-form-item label="预计人数">
-        <el-input-number v-model="form.expectedCount" :min="1" :max="10000" placeholder="人数" />
-      </el-form-item>
+      <div class="create-form__row">
+        <el-form-item label="地点">
+          <el-input v-model="form.location" placeholder="例如：教学楼 A301" />
+        </el-form-item>
+        <el-form-item label="预计人数">
+          <el-input-number v-model="form.expectedCount" :min="1" :max="10000" placeholder="人数" style="width: 100%" />
+        </el-form-item>
+      </div>
       <el-form-item label="参与成员">
         <el-select
           v-model="form.memberIds"
@@ -290,5 +342,21 @@ onMounted(loadList)
   margin-bottom: 12px;
   color: var(--el-text-color-regular);
   line-height: 1.6;
+}
+
+/* 发起活动表单：时间/地点等短字段两列并排，界面更紧凑整洁 */
+.create-form {
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 16px;
+  }
+}
+
+/* 长文本输入：换行展示 + 纵向滚动，避免内容被裁切 */
+:deep(.el-textarea__inner) {
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 </style>

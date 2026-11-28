@@ -33,6 +33,31 @@ export function listPublishedQuestionnaires(params: PageQuery = {}) {
   return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/published', method: 'GET', params })
 }
 
+/** 分页获取我报名的问卷 */
+export function listRegisteredQuestionnaires(params: PageQuery = {}) {
+  return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/registered', method: 'GET', params })
+}
+
+/** 分页获取我点赞过的问卷 */
+export function listLikedQuestionnaires(params: PageQuery = {}) {
+  return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/liked', method: 'GET', params })
+}
+
+/** 分页获取为我推荐的活动问卷 */
+export function listRecommendedQuestionnaires(params: PageQuery = {}) {
+  return request<PageVO<QuestionnaireVO>>({ url: '/questionnaires/recommended', method: 'GET', params })
+}
+
+/** 点赞问卷 */
+export function likeQuestionnaire(id: string) {
+  return request<void>({ url: `/questionnaires/${id}/like`, method: 'POST' })
+}
+
+/** 取消点赞 */
+export function unlikeQuestionnaire(id: string) {
+  return request<void>({ url: `/questionnaires/${id}/like`, method: 'DELETE' })
+}
+
 /** 问卷详情（填写页） */
 export function getQuestionnaireById(id: string) {
   return request<QuestionnaireVO>({ url: `/questionnaires/${id}`, method: 'GET' })

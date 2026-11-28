@@ -2,6 +2,7 @@ package com.aiapp.activityassistant.service;
 
 import com.aiapp.activityassistant.common.dto.PageQuery;
 import com.aiapp.activityassistant.common.result.PageVO;
+import com.aiapp.activityassistant.dto.BehaviorReportDTO;
 import com.aiapp.activityassistant.dto.QuestionnaireSaveDTO;
 import com.aiapp.activityassistant.dto.ResponseSubmitDTO;
 import com.aiapp.activityassistant.entity.Questionnaire;
@@ -58,6 +59,36 @@ public interface QuestionnaireService extends IService<Questionnaire> {
     QuestionnaireVO detail(Long id);
 
     /**
+     * 点赞问卷（保存点赞记录，并向 Kafka 上报点赞行为）
+     */
+    void like(Long id);
+
+    /**
+     * 取消点赞（物理删除点赞记录）
+     */
+    void unlike(Long id);
+
+    /**
+     * 分页查询当前用户点赞过的问卷
+     */
+    PageVO<QuestionnaireVO> listLiked(PageQuery query);
+
+    /**
+     * 分页查询当前用户已报名的问卷
+     */
+    PageVO<QuestionnaireVO> listRegistered(PageQuery query);
+
+    /**
+     * 分页查询为当前用户推荐的活动问卷（依据 Flink 聚合的兴趣标签）
+     */
+    PageVO<QuestionnaireVO> listRecommended(PageQuery query);
+
+    /**
+     * 上报用户行为（停留时长 / 点赞），写入 Kafka 供 Flink 计算推荐
+     */
+    void reportBehavior(BehaviorReportDTO dto);
+
+    /**
      * 提交答卷
      */
     void submitResponse(Long id, ResponseSubmitDTO dto);
@@ -81,4 +112,11 @@ public interface QuestionnaireService extends IService<Questionnaire> {
      * 确保活动反馈问卷（type=2）存在，返回其 ID；不存在则创建默认反馈问卷
      */
     Long ensureFeedbackQuestionnaire(Long activityId);
+
+    /**
+     * 自动关闭已到活动截止时间的报名问卷（type=1），由调度器调用
+     *
+     * @return 本次关闭的问卷数量
+     */
+    int closeExpiredQuestionnaires();
 }

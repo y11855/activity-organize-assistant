@@ -96,6 +96,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '角色权限', icon: 'Key', group: '系统管理', permission: 'system:role:view' }
       },
       {
+        path: 'logs',
+        name: 'log-center',
+        component: () => import('@/views/log/LogCenter.vue'),
+        meta: { title: '日志中心', icon: 'Document', group: '系统管理', permission: 'log:view' }
+      },
+      {
         path: '403',
         name: 'forbidden',
         component: () => import('@/views/Forbidden.vue'),

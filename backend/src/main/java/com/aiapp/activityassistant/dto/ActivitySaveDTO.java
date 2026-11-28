@@ -22,6 +22,9 @@ public class ActivitySaveDTO {
     @Schema(description = "活动描述（一句话描述，用于 AI 生成策划）")
     private String description;
 
+    @Schema(description = "面向参与者的活动介绍（可手写，留空则可由 AI 生成）")
+    private String introduction;
+
     @Schema(description = "开始时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
@@ -32,6 +35,10 @@ public class ActivitySaveDTO {
 
     @Schema(description = "活动地点")
     private String location;
+
+    @Schema(description = "活动属性标签: sports运动 art艺术 academic学术 public_welfare公益 social社交 entertainment娱乐 other其他")
+    @NotBlank(message = "请选择活动属性标签")
+    private String tag;
 
     @Schema(description = "预计参与人数")
     private Integer expectedCount;

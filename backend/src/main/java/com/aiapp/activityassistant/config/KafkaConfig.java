@@ -1,6 +1,7 @@
 package com.aiapp.activityassistant.config;
 
 import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
+import com.aiapp.activityassistant.common.mq.UserBehaviorPublisher;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,17 @@ public class KafkaConfig {
     @Bean
     public NewTopic activityEventsTopic() {
         return TopicBuilder.name(ActivityEventPublisher.TOPIC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    /**
+     * 用户行为主题：Flink 作业消费后聚合兴趣得分，分区数与事件主题保持一致
+     */
+    @Bean
+    public NewTopic userBehaviorTopic() {
+        return TopicBuilder.name(UserBehaviorPublisher.TOPIC)
                 .partitions(3)
                 .replicas(1)
                 .build();

@@ -18,6 +18,9 @@ public class PlannerResult {
     /** 策划文案（活动流程与任务完成计划） */
     private String planContent;
 
+    /** 面向参与者的活动介绍（报名页展示，吸引参与者报名） */
+    private String introduction;
+
     /** 物料采购清单 */
     private List<MaterialVO> materials = new ArrayList<>();
 

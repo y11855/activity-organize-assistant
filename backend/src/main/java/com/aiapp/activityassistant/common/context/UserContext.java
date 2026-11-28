@@ -14,6 +14,7 @@ import java.util.Set;
 public class UserContext {
 
     private static final ThreadLocal<Long> CURRENT_USER_ID = new ThreadLocal<>();
+    private static final ThreadLocal<String> USER_NAME = new ThreadLocal<>();
     private static final ThreadLocal<List<String>> ROLES = new ThreadLocal<>();
     private static final ThreadLocal<Set<String>> PERMISSIONS = new ThreadLocal<>();
 
@@ -22,6 +23,18 @@ public class UserContext {
      */
     public static void setCurrentUserId(Long userId) {
         CURRENT_USER_ID.set(userId);
+    }
+
+    /**
+     * 记录当前用户名（日志采集直接取用，避免每个请求额外查库）
+     */
+    public static void setCurrentUserName(String userName) {
+        USER_NAME.set(userName);
+    }
+
+    /** 当前用户名；未登录或未设置时返回 null */
+    public static String getCurrentUserName() {
+        return USER_NAME.get();
     }
 
     /**
@@ -45,6 +58,13 @@ public class UserContext {
         return id;
     }
 
+    /**
+     * 获取当前登录用户 ID，未登录返回 null（日志采集等旁路场景使用，不抛异常）
+     */
+    public static Long getCurrentUserIdOrNull() {
+        return CURRENT_USER_ID.get();
+    }
+
     /** 当前用户角色编码；无上下文时返回空列表 */
     public static List<String> getRoles() {
         List<String> roles = ROLES.get();
@@ -64,6 +84,7 @@ public class UserContext {
 
     public static void clear() {
         CURRENT_USER_ID.remove();
+        USER_NAME.remove();
         ROLES.remove();
         PERMISSIONS.remove();
     }

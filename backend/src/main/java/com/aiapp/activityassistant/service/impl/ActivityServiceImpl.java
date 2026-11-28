@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.service.impl;
 import com.aiapp.activityassistant.agent.ActivityAgent;
 import com.aiapp.activityassistant.common.context.UserContext;
 import com.aiapp.activityassistant.common.dto.PageQuery;
+import com.aiapp.activityassistant.common.enums.ActivityTag;
 import com.aiapp.activityassistant.common.exception.BusinessException;
 import com.aiapp.activityassistant.common.mq.ActivityEventPublisher;
 import com.aiapp.activityassistant.common.mq.ActivityEventType;
@@ -20,6 +21,7 @@ import com.aiapp.activityassistant.entity.Questionnaire;
 import com.aiapp.activityassistant.entity.QuestionnaireResponse;
 import com.aiapp.activityassistant.entity.Reminder;
 import com.aiapp.activityassistant.entity.TaskAssignment;
+import com.aiapp.activityassistant.entity.User;
 import com.aiapp.activityassistant.mapper.ActivityMapper;
 import com.aiapp.activityassistant.mapper.MaterialMapper;
 import com.aiapp.activityassistant.mapper.QuestionnaireMapper;
@@ -41,10 +43,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +84,10 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     @Qualifier("draftObjectMapper")
     private final ObjectMapper draftMapper;
 
+    /** 活动开始前默认提醒提前量（分钟）；发起人未自定义提醒时，发布后自动创建一条默认提醒 */
+    @Value("${activity-assistant.reminder.default-advance-minutes:30}")
+    private int defaultReminderAdvanceMinutes;
+
     /**
      * Agent 又依赖 ActivityService，构成构造器循环，用字段注入 + @Lazy 打破
      */
@@ -90,6 +98,10 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     @Override
     public Long create(ActivitySaveDTO dto) {
         Long currentUserId = UserContext.getCurrentUserId();
+        // 活动属性标签为必选项，且必须是预设枚举之一（推荐算法依赖该维度）
+        if (!ActivityTag.isValid(dto.getTag())) {
+            throw new BusinessException(ResultCode.PARAM_ERROR, "请选择合法的活动属性标签");
+        }
         Activity activity = new Activity();
         BeanUtils.copyProperties(dto, activity, "memberIds");
         // memberIds 是 List<Long>，落库为 JSON 字符串
@@ -210,20 +222,34 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
                 q.setActivityId(id);
                 q.setTitle("活动报名问卷");
                 q.setDescription("请填写报名信息");
+                q.setCoverImage(draft.getCoverImage());
                 q.setQuestions(questionsJson);
                 q.setStatus(1);
                 questionnaireMapper.insert(q);
             } else {
+                // 草稿设置了封面才覆盖，避免清空已上传的封面
+                if (draft.getCoverImage() != null) {
+                    existing.setCoverImage(draft.getCoverImage());
+                }
                 existing.setQuestions(questionsJson);
                 existing.setStatus(1);
                 questionnaireMapper.updateById(existing);
             }
         }
 
-        // 4. 定时提醒
-        createReminders(id, draft.getReminders());
+        // 4. 定时提醒：草稿未提供提醒时，自动创建一条默认提醒（活动开始前 N 分钟提醒创建者）
+        List<ReminderDraftDTO> reminders = draft.getReminders();
+        if (reminders == null || reminders.isEmpty()) {
+            reminders = buildDefaultReminders(activity);
+        }
+        createReminders(id, reminders);
 
-        // 5. 状态流转：待确认 → 执行中，草稿标记已确认
+        // 5. 活动介绍落库：AI 生成的介绍写入活动（为空则保留创建时手写的介绍）
+        if (draft.getIntroduction() != null && !draft.getIntroduction().isBlank()) {
+            activity.setIntroduction(draft.getIntroduction());
+        }
+
+        // 6. 状态流转：待确认 → 执行中，草稿标记已确认
         activity.setStatus(2);
         activity.setDraftStatus(2);
         activity.setDraftContent(null);
@@ -314,6 +340,36 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         }
     }
 
+    /**
+     * 构造默认提醒：活动开始前 defaultReminderAdvanceMinutes 分钟提醒创建者。
+     * 未设置开始时间时返回空列表，由创建者后续自定义提醒时间。
+     */
+    private List<ReminderDraftDTO> buildDefaultReminders(Activity activity) {
+        List<ReminderDraftDTO> list = new ArrayList<>();
+        LocalDateTime start = activity.getStartTime();
+        if (start == null) {
+            log.info("[活动] 未设置开始时间，跳过默认提醒创建, activityId={}", activity.getId());
+            return list;
+        }
+        User creator = userService.getById(activity.getCreatorId());
+        String creatorName = creator == null ? null
+                : (creator.getNickname() == null ? creator.getUsername() : creator.getNickname());
+        LocalDateTime trigger = start.minusMinutes(defaultReminderAdvanceMinutes);
+        // 开始时间已临近/已过，则退化为 1 分钟后触发，避免提醒一创建就过期
+        if (!trigger.isAfter(LocalDateTime.now())) {
+            trigger = LocalDateTime.now().plusMinutes(1);
+        }
+        ReminderDraftDTO r = new ReminderDraftDTO();
+        r.setTitle("活动提醒：" + activity.getTitle());
+        r.setContent("活动「" + activity.getTitle() + "」将于 " + start
+                + (activity.getLocation() == null ? "" : "，地点：" + activity.getLocation()) + " 开始，请做好准备。");
+        r.setTargetUserId(activity.getCreatorId());
+        r.setTargetUserName(creatorName);
+        r.setTriggerTime(trigger);
+        list.add(r);
+        return list;
+    }
+
     /** 读取草稿 JSON */
     private ActivityDraftVO readDraft(String json) {
         try {
@@ -356,6 +412,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         }
         ActivityVO vo = new ActivityVO();
         BeanUtils.copyProperties(activity, vo);
+        vo.setTagName(ActivityTag.labelOf(activity.getTag()));
         vo.setMemberNames(resolveMemberNames(activity.getMemberIds()));
 
         // 物料清单
@@ -390,6 +447,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         List<ActivityVO> records = page.getRecords().stream().map(a -> {
             ActivityVO vo = new ActivityVO();
             BeanUtils.copyProperties(a, vo);
+            vo.setTagName(ActivityTag.labelOf(a.getTag()));
             return vo;
         }).collect(Collectors.toList());
         return PageVO.of(records, page.getTotal(), page.getCurrent(), page.getSize());
@@ -411,6 +469,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
         List<ActivityVO> records = matched.subList(from, to).stream().map(a -> {
             ActivityVO vo = new ActivityVO();
             BeanUtils.copyProperties(a, vo);
+            vo.setTagName(ActivityTag.labelOf(a.getTag()));
             vo.setMemberNames(resolveMemberNames(a.getMemberIds()));
             return vo;
         }).toList();
@@ -467,12 +526,18 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int confirmTasks(Long id) {
-        checkOwnership(id);
+        // 创建者或有活动管理权限的负责人均可通知（与「有权修改的人」保持一致）
+        checkManage(id, "activity:manage");
         Activity activity = getById(id);
         // 状态互斥：任务必须先经发起人确认发布，才能通知成员
         if (!Objects.equals(activity.getStatus(), 2)) {
             throw new BusinessException(ResultCode.PRECONDITION_FAILED, "请先确认并发布 AI 生成的内容，再通知成员");
+        }
+        // 全局只允许通知一次：只要有人通知过，其余管理者同样不能再通知（按钮同步置灰）
+        if (Integer.valueOf(1).equals(activity.getTasksNotified())) {
+            throw new BusinessException(ResultCode.PRECONDITION_FAILED, "任务分工已通知成员，请勿重复通知");
         }
         List<TaskAssignment> tasks = taskService.listByActivity(id);
         if (tasks.isEmpty()) {
@@ -505,6 +570,10 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity>
             content.append("请及时查看「任务分工」并按时完成。");
             messageService.send(assigneeId, "活动任务通知：" + activityTitle, content.toString(), id);
         });
+        // 记录已通知标志，防止任何人重复通知（同时让前端按钮置灰）
+        activity.setTasksNotified(1);
+        updateById(activity);
+        evictDetailCache(id);
         log.info("[活动] 分工已确认并通知, activityId={}, notified={}", id, byAssignee.size());
         return byAssignee.size();
     }

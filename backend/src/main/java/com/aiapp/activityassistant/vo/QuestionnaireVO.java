@@ -23,6 +23,18 @@ public class QuestionnaireVO {
     @Schema(description = "活动标题")
     private String activityTitle;
 
+    @Schema(description = "面向参与者的活动介绍")
+    private String introduction;
+
+    @Schema(description = "活动开始时间")
+    private LocalDateTime startTime;
+
+    @Schema(description = "活动结束时间（截止后报名自动关闭）")
+    private LocalDateTime endTime;
+
+    @Schema(description = "活动地点")
+    private String location;
+
     @Schema(description = "问卷标题")
     private String title;
 
@@ -40,6 +52,21 @@ public class QuestionnaireVO {
 
     @Schema(description = "报名人数")
     private Integer responseCount;
+
+    @Schema(description = "活动属性标签编码")
+    private String activityTag;
+
+    @Schema(description = "活动属性标签中文名")
+    private String activityTagName;
+
+    @Schema(description = "点赞数")
+    private Integer likeCount;
+
+    @Schema(description = "当前用户是否已点赞")
+    private Boolean liked;
+
+    @Schema(description = "当前用户是否已报名")
+    private Boolean registered;
 
     private LocalDateTime createTime;
 }

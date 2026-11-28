@@ -1,0 +1,5 @@
+com\aiapp\flink\UserBehaviorRecommendationJob$BehaviorParser.class
+com\aiapp\flink\UserBehaviorRecommendationJob$BehaviorEvent.class
+com\aiapp\flink\UserBehaviorRecommendationJob$InterestAggregator.class
+com\aiapp\flink\UserBehaviorRecommendationJob$TagScore.class
+com\aiapp\flink\UserBehaviorRecommendationJob.class

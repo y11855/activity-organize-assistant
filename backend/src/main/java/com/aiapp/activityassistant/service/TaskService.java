@@ -40,4 +40,12 @@ public interface TaskService extends IService<TaskAssignment> {
      * 获取活动下的任务列表
      */
     List<TaskAssignment> listByActivity(Long activityId);
+
+    /**
+     * 扫描并提醒即将到期的任务：未完成且距离截止不足 1 小时的任务，
+     * 给负责人发送站内提醒（每条任务只提醒一次，由 deadline_reminded 标记去重）。
+     *
+     * @return 本轮提醒的任务数量
+     */
+    int remindUpcomingDeadlines();
 }

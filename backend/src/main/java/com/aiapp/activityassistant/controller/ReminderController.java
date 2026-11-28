@@ -3,6 +3,7 @@ package com.aiapp.activityassistant.controller;
 import com.aiapp.activityassistant.common.annotation.Idempotent;
 import com.aiapp.activityassistant.common.result.Result;
 import com.aiapp.activityassistant.dto.ReminderCreateDTO;
+import com.aiapp.activityassistant.dto.ReminderUpdateDTO;
 import com.aiapp.activityassistant.service.ReminderService;
 import com.aiapp.activityassistant.vo.ReminderVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,6 +47,14 @@ public class ReminderController {
     @Idempotent(prefix = "reminder:cancel", ttl = 3)
     public Result<Void> cancel(@PathVariable Long id) {
         reminderService.cancel(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "更新提醒（标题/内容/触发时间），仅待触发可改；创建者可自定义提醒时间")
+    @PutMapping("/{id}")
+    @Idempotent(prefix = "reminder:update", ttl = 3)
+    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody ReminderUpdateDTO dto) {
+        reminderService.update(id, dto);
         return Result.success();
     }
 

@@ -1,5 +1,6 @@
 package com.aiapp.activityassistant.config;
 
+import com.aiapp.activityassistant.common.log.LogInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import java.nio.file.Paths;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final IdempotentInterceptor idempotentInterceptor;
+    private final LogInterceptor logInterceptor;
 
     /** 上传文件存储目录（Tomcat 部署时由环境变量 UPLOAD_DIR 指向绝对路径） */
     @Value("${app.upload-dir:uploads}")
@@ -28,6 +30,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // Shiro 过滤器在 Servlet 层先完成认证并填充 UserContext，这里保持幂等拦截在其之后
         registry.addInterceptor(idempotentInterceptor)
+                .addPathPatterns("/**");
+        // 日志采集放在最后：Shiro 已完成认证、UserContext 已就绪
+        registry.addInterceptor(logInterceptor)
                 .addPathPatterns("/**");
     }
 

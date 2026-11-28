@@ -1,33 +1,89 @@
-<!-- 我的问卷列表页：查看、编辑报名问卷与题目配置 -->
+<!-- 问卷列表页：全部已发布 / 为你推荐 / 我报名的 / 我点赞的 / 我发布的 -->
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listMyQuestionnaires,
   listPublishedQuestionnaires,
+  listRegisteredQuestionnaires,
+  listLikedQuestionnaires,
+  listRecommendedQuestionnaires,
   updateQuestionnaire,
   publishQuestionnaire,
-  closeQuestionnaire
+  closeQuestionnaire,
+  likeQuestionnaire,
+  unlikeQuestionnaire
 } from '@/api/questionnaire'
 import { uploadFile } from '@/api/file'
 import type { QuestionnaireVO } from '@/types'
 import { debounce, formatDate } from '@/utils'
 
+type TabKey = 'all' | 'recommend' | 'registered' | 'liked' | 'mine'
+
+interface TabState {
+  list: QuestionnaireVO[]
+  page: number
+  total: number
+  loading: boolean
+  loaded: boolean
+}
+
+const TABS: { key: TabKey; label: string; empty: string }[] = [
+  { key: 'all', label: '全部已发布', empty: '暂无已发布的报名问卷' },
+  { key: 'recommend', label: '为你推荐', empty: '暂无推荐，先去浏览并点赞感兴趣的活动吧' },
+  { key: 'registered', label: '我报名的', empty: '你还没有报名任何活动' },
+  { key: 'liked', label: '我点赞的', empty: '你还没有点赞任何问卷' },
+  { key: 'mine', label: '我发布的', empty: '暂无问卷，请先在活动详情中生成报名问卷' }
+]
+
+const LOADERS: Record<
+  TabKey,
+  (params: { page: number; size: number }) => Promise<{ records: QuestionnaireVO[]; total: number }>
+> = {
+  all: listPublishedQuestionnaires,
+  recommend: listRecommendedQuestionnaires,
+  registered: listRegisteredQuestionnaires,
+  liked: listLikedQuestionnaires,
+  mine: listMyQuestionnaires
+}
+
 const router = useRouter()
-/** 全部已发布（所有人可看可填） / 我发布的（创建者管理） */
-const activeTab = ref<'all' | 'mine'>('all')
-const list = ref<QuestionnaireVO[]>([])
-const page = ref(1)
-const size = ref(10)
-const total = ref(0)
-const loading = ref(false)
-const published = ref<QuestionnaireVO[]>([])
-const publishedPage = ref(1)
-const publishedTotal = ref(0)
-const publishedLoading = ref(false)
-const currentList = computed(() => (activeTab.value === 'all' ? published.value : list.value))
-const currentLoading = computed(() => (activeTab.value === 'all' ? publishedLoading.value : loading.value))
+const size = 10
+const activeTab = ref<TabKey>('all')
+
+/** 每个 tab 独立维护列表与分页，切换 tab 时不互相覆盖 */
+const tabStates = reactive<Record<TabKey, TabState>>({
+  all: { list: [], page: 1, total: 0, loading: false, loaded: false },
+  recommend: { list: [], page: 1, total: 0, loading: false, loaded: false },
+  registered: { list: [], page: 1, total: 0, loading: false, loaded: false },
+  liked: { list: [], page: 1, total: 0, loading: false, loaded: false },
+  mine: { list: [], page: 1, total: 0, loading: false, loaded: false }
+})
+
+const current = computed(() => tabStates[activeTab.value])
+const currentTab = computed(() => TABS.find((tab) => tab.key === activeTab.value) as (typeof TABS)[number])
+
+async function loadTab(key: TabKey) {
+  const state = tabStates[key]
+  state.loading = true
+  try {
+    const res = await LOADERS[key]({ page: state.page, size })
+    state.list = res.records
+    state.total = res.total
+    state.loaded = true
+  } finally {
+    state.loading = false
+  }
+}
+
+/** 首次切换到某个 tab 时才请求，避免一次加载全部数据 */
+function onTabChange(value: string | number | boolean | undefined) {
+  const key = value as TabKey
+  if (key && !tabStates[key].loaded) {
+    loadTab(key)
+  }
+}
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -36,28 +92,6 @@ const form = ref({ id: '', title: '', description: '', coverImage: '' })
 
 const statusMap: Record<number, string> = { 0: '未发布', 1: '已发布', 2: '已截止' }
 const statusType: Record<number, 'info' | 'success' | 'danger'> = { 0: 'info', 1: 'success', 2: 'danger' }
-
-async function loadList() {
-  loading.value = true
-  try {
-    const res = await listMyQuestionnaires({ page: page.value, size: size.value })
-    list.value = res.records
-    total.value = res.total
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadPublished() {
-  publishedLoading.value = true
-  try {
-    const res = await listPublishedQuestionnaires({ page: publishedPage.value, size: size.value })
-    published.value = res.records
-    publishedTotal.value = res.total
-  } finally {
-    publishedLoading.value = false
-  }
-}
 
 function onEdit(row: QuestionnaireVO) {
   form.value = {
@@ -105,7 +139,7 @@ async function persistCover() {
     description: form.value.description,
     coverImage: form.value.coverImage
   })
-  loadList()
+  loadTab('mine')
 }
 
 const onRemoveCover = debounce(async () => {
@@ -135,7 +169,7 @@ const onSave = debounce(async () => {
     })
     ElMessage.success('问卷已保存')
     dialogVisible.value = false
-    loadList()
+    loadTab('mine')
   } catch {
     // 错误提示已在拦截器统一弹出
   } finally {
@@ -144,45 +178,60 @@ const onSave = debounce(async () => {
 }, 500)
 
 const onPublish = debounce(async (row: QuestionnaireVO) => {
-  if (loading.value) return
+  if (current.value.loading) return
   await publishQuestionnaire(row.id)
   ElMessage.success('问卷已发布')
-  loadList()
+  loadTab('mine')
 }, 500)
 
 const onClose = debounce(async (row: QuestionnaireVO) => {
-  if (loading.value) return
+  if (current.value.loading) return
   await ElMessageBox.confirm('确定截止该问卷吗？截止后将无法提交答卷。', '提示', { type: 'warning' })
   await closeQuestionnaire(row.id)
   ElMessage.success('问卷已截止')
-  loadList()
+  loadTab('mine')
 }, 500)
 
+/** 点赞 / 取消点赞，乐观更新卡片上的点赞数与状态 */
+async function toggleLike(q: QuestionnaireVO) {
+  try {
+    if (q.liked) {
+      await unlikeQuestionnaire(q.id)
+      q.liked = false
+      q.likeCount = Math.max((q.likeCount ?? 1) - 1, 0)
+      // 「我点赞的」列表取消点赞后立即移除该卡片
+      if (activeTab.value === 'liked') {
+        current.value.list = current.value.list.filter((item) => item.id !== q.id)
+        current.value.total = Math.max(current.value.total - 1, 0)
+      }
+    } else {
+      await likeQuestionnaire(q.id)
+      q.liked = true
+      q.likeCount = (q.likeCount ?? 0) + 1
+    }
+  } catch {
+    // 错误提示已在拦截器统一弹出
+  }
+}
+
 onMounted(() => {
-  loadPublished()
-  loadList()
+  loadTab('all')
 })
 </script>
 
 <template>
-  <div v-loading="currentLoading">
+  <div v-loading="current.loading">
     <div class="qn-toolbar">
-      <el-radio-group v-model="activeTab">
-        <el-radio-button value="all">全部已发布问卷</el-radio-button>
-        <el-radio-button value="mine">我发布的问卷</el-radio-button>
+      <el-radio-group v-model="activeTab" @change="onTabChange">
+        <el-radio-button v-for="tab in TABS" :key="tab.key" :value="tab.key">{{ tab.label }}</el-radio-button>
       </el-radio-group>
-      <span class="qn-toolbar__tip">所有登录用户均可查看并填写活动发起者发布的问卷</span>
+      <span class="qn-toolbar__tip">「为你推荐」依据你的浏览时长与点赞行为实时计算</span>
     </div>
 
-    <el-empty
-      v-if="!currentList.length"
-      :description="
-        activeTab === 'all' ? '暂无已发布的报名问卷' : '暂无问卷，请先在活动详情中生成报名问卷'
-      "
-    />
+    <el-empty v-if="!current.list.length" :description="currentTab.empty" />
 
     <div v-else class="qn-grid">
-      <el-card v-for="q in currentList" :key="q.id" class="qn-card" shadow="hover">
+      <el-card v-for="q in current.list" :key="q.id" class="qn-card" shadow="hover">
         <div class="qn-card__cover" @click="router.push(`/questionnaires/${q.id}/fill`)">
           <el-image v-if="q.coverImage" :src="q.coverImage" fit="cover" class="qn-card__img" />
           <div v-else class="qn-card__placeholder">
@@ -192,13 +241,23 @@ onMounted(() => {
         </div>
         <div class="qn-card__body">
           <div class="qn-card__title">
-            <span>{{ q.title }}</span>
+            <span class="qn-card__name">{{ q.title }}</span>
             <el-tag :type="statusType[q.status]" size="small">{{ statusMap[q.status] }}</el-tag>
           </div>
-          <div class="qn-card__meta">所属活动：{{ q.activityTitle || '-' }}</div>
+          <div class="qn-card__meta">
+            所属活动：{{ q.activityTitle || '-' }}
+            <!-- 活动属性标签：参与者一眼识别活动类型 -->
+            <el-tag v-if="q.activityTagName" size="small" effect="plain" class="qn-card__tag">
+              {{ q.activityTagName }}
+            </el-tag>
+            <el-tag v-if="q.registered" size="small" type="success" class="qn-card__tag">已报名</el-tag>
+          </div>
           <div class="qn-card__meta">报名人数：{{ q.responseCount ?? 0 }} · {{ formatDate(q.createTime) }}</div>
           <div class="qn-card__actions">
             <el-button link type="primary" @click="router.push(`/questionnaires/${q.id}/fill`)">填写</el-button>
+            <el-button link :type="q.liked ? 'danger' : 'primary'" @click="toggleLike(q)">
+              {{ q.liked ? '已点赞' : '点赞' }} {{ q.likeCount ?? 0 }}
+            </el-button>
             <template v-if="activeTab === 'mine'">
               <el-button link type="primary" @click="onEdit(q)">编辑/封面</el-button>
               <el-button v-if="q.status !== 1" link type="success" @click="onPublish(q)">发布</el-button>
@@ -209,24 +268,13 @@ onMounted(() => {
       </el-card>
     </div>
 
-    <div v-if="activeTab === 'mine' && total > 0" class="list-pagination">
+    <div v-if="current.total > 0" class="list-pagination">
       <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="size"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @change="loadList"
-      />
-    </div>
-    <div v-if="activeTab === 'all' && publishedTotal > 0" class="list-pagination">
-      <el-pagination
-        v-model:current-page="publishedPage"
-        v-model:page-size="size"
-        :total="publishedTotal"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next"
-        @change="loadPublished"
+        v-model:current-page="current.page"
+        :page-size="size"
+        :total="current.total"
+        layout="total, prev, pager, next"
+        @change="loadTab(activeTab)"
       />
     </div>
 
@@ -282,6 +330,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 
   &__tip {
@@ -339,8 +388,15 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     font-weight: 600;
     margin-bottom: 8px;
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__meta {
@@ -349,8 +405,15 @@ onMounted(() => {
     line-height: 1.8;
   }
 
+  &__tag {
+    margin-left: 6px;
+  }
+
   &__actions {
     margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
   }
 }
 

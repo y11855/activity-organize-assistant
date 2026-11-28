@@ -52,6 +52,7 @@ public class Planner {
         all.setMaterials(true);
         all.setQuestionnaire(true);
         all.setReminders(true);
+        all.setIntroduction(true);
         return plan(activity, all);
     }
 
@@ -92,6 +93,9 @@ public class Planner {
         try {
             JsonNode root = objectMapper.readTree(extractJson(response));
             result.setPlanContent(root.path("planContent").asText(""));
+            if (options.wantIntroduction()) {
+                result.setIntroduction(root.path("introduction").asText(""));
+            }
             if (options.wantMaterials()) {
                 result.setMaterials(parseMaterials(root.path("materials")));
             }
@@ -118,6 +122,9 @@ public class Planner {
         StringBuilder sb = new StringBuilder();
         sb.append("你是活动策划助手。根据用户的活动描述，输出 JSON，包含：\n")
                 .append("- planContent: 策划文案（包含活动流程与任务完成计划）\n");
+        if (options.wantIntroduction()) {
+            sb.append("- introduction: 面向参与者的活动介绍文案（200-400字，语气热情有吸引力，说明活动是做什么的、有什么亮点和收获，用于报名页展示吸引参与者）\n");
+        }
         if (options.wantTasks()) {
             sb.append("- tasks: 任务分工数组 [{title, description, assigneeIndex, assigneeName, deadlineOffsetHours}]\n");
         }
@@ -428,6 +435,11 @@ public class Planner {
     private PlannerResult fallbackPlan(Activity activity, ActivityGenerateDTO options) {
         PlannerResult result = new PlannerResult();
         result.setPlanContent("【兜底策划】活动《" + activity.getTitle() + "》的基础策划方案。");
+        if (options.wantIntroduction()) {
+            result.setIntroduction("欢迎参加「" + activity.getTitle() + "」！"
+                    + (activity.getDescription() == null ? "" : activity.getDescription() + "。")
+                    + "在这里你将结识志同道合的伙伴，共同完成一段有意义的经历。名额有限，快来报名吧！");
+        }
         if (options.wantQuestionnaire()) {
             QuestionDraftDTO q = new QuestionDraftDTO();
             q.setTitle("是否参加");

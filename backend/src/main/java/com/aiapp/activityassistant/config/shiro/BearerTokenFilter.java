@@ -57,6 +57,8 @@ public class BearerTokenFilter extends AuthenticatingFilter {
         if (subject.getPrincipal() instanceof LoginUser loginUser) {
             UserContext.setCurrentUser(loginUser.getId(), loginUser.getRoles(),
                     loginUser.getPermissions().stream().toList());
+            // 日志采集需要用户名，这里顺手写入上下文，避免每次请求再查一次用户表
+            UserContext.setCurrentUserName(loginUser.getUsername());
         }
         // 继续执行后续过滤器与业务逻辑
         return true;

@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -90,6 +91,39 @@ public class QuestionnaireController {
     @GetMapping("/published")
     public Result<PageVO<QuestionnaireVO>> listPublished(PageQuery query) {
         return Result.success(questionnaireService.listPublished(query));
+    }
+
+    @Operation(summary = "分页获取当前用户已报名的问卷")
+    @GetMapping("/registered")
+    public Result<PageVO<QuestionnaireVO>> listRegistered(PageQuery query) {
+        return Result.success(questionnaireService.listRegistered(query));
+    }
+
+    @Operation(summary = "分页获取当前用户点赞过的问卷")
+    @GetMapping("/liked")
+    public Result<PageVO<QuestionnaireVO>> listLiked(PageQuery query) {
+        return Result.success(questionnaireService.listLiked(query));
+    }
+
+    @Operation(summary = "分页获取为当前用户推荐的活动问卷")
+    @GetMapping("/recommended")
+    public Result<PageVO<QuestionnaireVO>> listRecommended(PageQuery query) {
+        return Result.success(questionnaireService.listRecommended(query));
+    }
+
+    @Operation(summary = "点赞问卷")
+    @PostMapping("/{id}/like")
+    @Idempotent(prefix = "questionnaire:like", ttl = 2)
+    public Result<Void> like(@PathVariable Long id) {
+        questionnaireService.like(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "取消点赞")
+    @DeleteMapping("/{id}/like")
+    public Result<Void> unlike(@PathVariable Long id) {
+        questionnaireService.unlike(id);
+        return Result.success();
     }
 
     @Operation(summary = "按 ID 获取问卷详情（填写页）")

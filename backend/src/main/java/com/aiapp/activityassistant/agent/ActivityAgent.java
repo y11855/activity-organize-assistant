@@ -70,6 +70,7 @@ public class ActivityAgent {
             ActivityDraftVO draft = new ActivityDraftVO();
             draft.setOptions(options);
             draft.setPlanContent(plan.getPlanContent());
+            draft.setIntroduction(plan.getIntroduction());
             draft.setMaterials(plan.getMaterials());
             draft.setQuestions(plan.getQuestions());
             draft.setTasks(plan.getTasks());

@@ -29,9 +29,13 @@ export interface PageVO<T> {
 export interface ActivitySaveDTO {
   title: string
   description?: string
+  /** 面向参与者的活动介绍（可手写，留空则可由 AI 生成） */
+  introduction?: string
   startTime?: string
   endTime?: string
   location?: string
+  /** 活动属性标签: sports运动 art艺术 academic学术 public_welfare公益 social社交 entertainment娱乐 other其他 */
+  tag: string
   expectedCount?: number
   memberIds?: string[]
 }
@@ -64,13 +68,21 @@ export interface ActivityVO {
   creatorid: string
   title: string
   description?: string
+  /** 面向参与者的活动介绍 */
+  introduction?: string
   startTime?: string
   endTime?: string
   location?: string
   expectedCount?: number
+  /** 活动属性标签编码 */
+  tag?: string
+  /** 活动属性标签中文名 */
+  tagName?: string
   memberNames?: string[]
   status: number
   draftStatus?: number
+  /** 任务分工是否已通知成员: 0否 1是（全局标志，通知后按钮置灰） */
+  tasksNotified?: number
   planContent?: string
   reviewContent?: string
   materials?: MaterialVO[]
@@ -93,6 +105,11 @@ export interface QuestionnaireVO {
   id: string
   activityid: string
   activityTitle?: string
+  /** 面向参与者的活动介绍（报名页展示） */
+  introduction?: string
+  startTime?: string
+  endTime?: string
+  location?: string
   type?: number
   title: string
   description?: string
@@ -100,6 +117,16 @@ export interface QuestionnaireVO {
   questions?: string
   status: number
   responseCount?: number
+  /** 活动属性标签编码 */
+  activityTag?: string
+  /** 活动属性标签中文名 */
+  activityTagName?: string
+  /** 点赞数 */
+  likeCount?: number
+  /** 当前用户是否已点赞 */
+  liked?: boolean
+  /** 当前用户是否已报名 */
+  registered?: boolean
   createTime: string
 }
 
@@ -170,6 +197,23 @@ export interface ReminderVO {
   createTime: string
 }
 
+/** 提醒更新请求（创建者自定义提醒时间/标题/内容，字段可选，非空才更新） */
+export interface ReminderUpdateDTO {
+  title?: string
+  content?: string
+  triggerTime?: string
+}
+
+/** 提醒创建请求（活动创建者自定义定时提醒） */
+export interface ReminderCreateDTO {
+  activityId: string
+  title: string
+  content?: string
+  targetUserId?: string
+  targetUserName?: string
+  triggerTime: string
+}
+
 /** 用户（成员选择器） */
 export interface UserSimpleVO {
   id: string
@@ -228,6 +272,7 @@ export interface GenerateOptions {
   materials?: boolean
   questionnaire?: boolean
   reminders?: boolean
+  introduction?: boolean
 }
 
 /** 问卷题目草稿 */
@@ -251,8 +296,12 @@ export interface ReminderDraft {
 export interface ActivityDraftVO {
   options?: GenerateOptions
   planContent?: string
+  /** 面向参与者的活动介绍（AI 生成，可在确认前编辑） */
+  introduction?: string
   materials?: MaterialVO[]
   questions?: QuestionDraft[]
+  /** 报名问卷封面图 URL（创建者在草稿阶段直接设置） */
+  coverImage?: string
   tasks?: TaskAssignDTO[]
   reminders?: ReminderDraft[]
 }
@@ -346,4 +395,53 @@ export interface ChatMessageVO {
   senderName: string
   content: string
   createTime: string
+}
+
+/** 日志类型 */
+export type LogType = 'operation' | 'login' | 'api' | 'exception' | 'audit'
+
+/** 系统日志行 */
+export interface SysLogVO {
+  id: string
+  logType: LogType
+  module?: string
+  operation?: string
+  method?: string
+  requestUri?: string
+  /** 请求参数（已脱敏） */
+  requestParams?: string
+  /** 响应内容（截断） */
+  responseBody?: string
+  userId?: string
+  userName?: string
+  ip?: string
+  client?: string
+  statusCode?: number
+  /** 耗时（毫秒） */
+  duration?: number
+  /** 1 成功 0 失败 */
+  success: number
+  errorMsg?: string
+  createTime: string
+}
+
+/** 日志概览统计 */
+export interface LogOverviewVO {
+  totalCalls: number
+  todayCalls: number
+  exceptionCount: number
+  slowCount: number
+  loginFailCount: number
+  onlineUsers: number
+}
+
+/** 日志分页查询参数 */
+export interface LogQuery extends PageQuery {
+  logType?: string
+  module?: string
+  keyword?: string
+  /** yyyy-MM-dd HH:mm:ss */
+  startTime?: string
+  /** yyyy-MM-dd HH:mm:ss */
+  endTime?: string
 }

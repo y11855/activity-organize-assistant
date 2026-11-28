@@ -34,4 +34,7 @@ public class TaskAssignment extends BaseEntity {
 
     /** 状态: 0待开始 1进行中 2已完成 3已逾期 */
     private Integer status;
+
+    /** 截止前 1 小时是否已提醒负责人: 0否 1是（避免重复提醒） */
+    private Integer deadlineReminded;
 }

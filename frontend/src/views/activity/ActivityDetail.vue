@@ -16,12 +16,14 @@ import {
   deleteEventLog
 } from '@/api/activity'
 import { listUsers } from '@/api/user'
+import { listReminders, updateReminder, cancelReminder, createReminder } from '@/api/reminder'
 import { useUserStore } from '@/stores'
 import {
   deleteActivityFile,
   fileDownloadUrl,
   listActivityFiles,
-  uploadNamedFile
+  uploadNamedFile,
+  uploadFile
 } from '@/api/file'
 import { CHUNK_THRESHOLD, ResumableDownload, uploadChunked } from '@/utils/fileTransfer'
 import type {
@@ -32,7 +34,8 @@ import type {
   QuestionDraft,
   TaskAssignDTO,
   UserSimpleVO,
-  ActivityEventLogVO
+  ActivityEventLogVO,
+  ReminderVO
 } from '@/types'
 import { debounce, formatDate } from '@/utils'
 import ActivityChat from '@/components/ActivityChat.vue'
@@ -67,7 +70,8 @@ const options = ref<GenerateOptions>({
   tasks: true,
   materials: true,
   questionnaire: true,
-  reminders: true
+  reminders: true,
+  introduction: true
 })
 /** 成员账号（用于修改任务负责人） */
 const userOptions = ref<UserSimpleVO[]>([])
@@ -80,6 +84,7 @@ const checkedOptions = computed<string[]>({
     if (options.value.materials) list.push('materials')
     if (options.value.questionnaire) list.push('questionnaire')
     if (options.value.reminders) list.push('reminders')
+    if (options.value.introduction) list.push('introduction')
     return list
   },
   set(value: string[]) {
@@ -87,7 +92,8 @@ const checkedOptions = computed<string[]>({
       tasks: value.includes('tasks'),
       materials: value.includes('materials'),
       questionnaire: value.includes('questionnaire'),
-      reminders: value.includes('reminders')
+      reminders: value.includes('reminders'),
+      introduction: value.includes('introduction')
     }
   }
 })
@@ -200,7 +206,7 @@ function openOptions() {
 /** 触发 AI 生成（仅草稿/待确认状态可用） */
 const onGenerate = debounce(async () => {
   if (generating.value) return
-  if (!options.value.tasks && !options.value.materials && !options.value.questionnaire && !options.value.reminders) {
+  if (checkedOptions.value.length === 0) {
     ElMessage.warning('请至少勾选一项需要 AI 生成的内容')
     return
   }
@@ -218,9 +224,27 @@ const onGenerate = debounce(async () => {
   }
 }, 500)
 
+/** 校验任务分工：每项任务必须填写标题与截止时间 */
+function validateTasks(): boolean {
+  const tasks = draft.value?.tasks ?? []
+  for (let i = 0; i < tasks.length; i++) {
+    const t = tasks[i]
+    if (!t.title?.trim()) {
+      ElMessage.warning(`第 ${i + 1} 项任务请填写任务标题`)
+      return false
+    }
+    if (!t.deadline) {
+      ElMessage.warning(`任务「${t.title}」请选择截止时间`)
+      return false
+    }
+  }
+  return true
+}
+
 /** 保存对草稿的编辑 */
 const onSaveDraft = debounce(async () => {
   if (savingDraft.value || !draft.value) return
+  if (!validateTasks()) return
   savingDraft.value = true
   try {
     await updateActivityDraft(id, draft.value)
@@ -233,6 +257,7 @@ const onSaveDraft = debounce(async () => {
 /** 确认发布：先保存编辑，再正式发布任务/问卷等内容 */
 const onPublish = debounce(async () => {
   if (publishing.value || !draft.value) return
+  if (!validateTasks()) return
   try {
     await ElMessageBox.confirm(
       '确认发布该方案吗？确认后将正式发布任务分工、报名问卷、物料清单与定时提醒，且不可再修改草稿。',
@@ -287,6 +312,43 @@ function addMaterial() {
 function addQuestion() {
   draft.value?.questions?.push({ title: '', type: 'text', required: false, options: [] })
 }
+
+/* ===================== 报名问卷封面（草稿阶段直接设置，发布后带到问卷） ===================== */
+const coverUploading = ref(false)
+
+/** 上传并保存问卷封面：格式 JPG/PNG/WebP，大小 ≤5MB */
+async function onDraftCoverChange(file: { raw?: File }) {
+  const raw = file.raw
+  if (!raw) return
+  const ext = raw.name.includes('.') ? raw.name.split('.').pop()!.toLowerCase() : ''
+  if (!['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+    ElMessage.error('仅支持 JPG、PNG、WebP 格式的图片')
+    return
+  }
+  if (raw.size > 5 * 1024 * 1024) {
+    ElMessage.error(`图片大小不能超过 5MB，当前 ${(raw.size / 1024 / 1024).toFixed(1)}MB`)
+    return
+  }
+  coverUploading.value = true
+  try {
+    const res = await uploadFile(raw)
+    if (draft.value) {
+      draft.value.coverImage = res.url
+      // 立即保存草稿，封面无需再点「保存修改」
+      await updateActivityDraft(id, draft.value)
+      ElMessage.success('问卷封面已设置')
+    }
+  } finally {
+    coverUploading.value = false
+  }
+}
+
+const removeDraftCover = debounce(async () => {
+  if (!draft.value) return
+  draft.value.coverImage = ''
+  await updateActivityDraft(id, draft.value)
+  ElMessage.success('问卷封面已删除')
+}, 300)
 
 function addReminder() {
   draft.value?.reminders?.push({ title: '', content: '', triggerTime: '' })
@@ -536,6 +598,113 @@ const eventTypeTag = (t: number) => eventTypeOptions.find((o) => o.value === t)
 // 活动已发布（含进行中/已完成）时展示事件记录与复盘
 const showOpsPanel = computed(() => detail.value && (detail.value.status === 2 || detail.value.status === 3))
 
+/* ===================== 定时提醒（创建者可自定义触发时间） ===================== */
+const reminders = ref<ReminderVO[]>([])
+const reminderLoading = ref(false)
+const editingId = ref<string>('')
+const editingTime = ref<string>('')
+const savingReminder = ref(false)
+const reminderStatusMap: Record<number, string> = { 0: '待触发', 1: '已发送', 2: '已取消', 3: '发送失败' }
+const reminderStatusType: Record<number, 'warning' | 'success' | 'info' | 'danger'> = {
+  0: 'warning',
+  1: 'success',
+  2: 'info',
+  3: 'danger'
+}
+// 已发布（进行中/已完成）后展示提醒管理面板
+const showReminderPanel = computed(() => detail.value && (detail.value.status === 2 || detail.value.status === 3))
+
+async function loadReminders() {
+  reminderLoading.value = true
+  try {
+    reminders.value = await listReminders(id)
+  } finally {
+    reminderLoading.value = false
+  }
+}
+
+function startEditReminder(row: ReminderVO) {
+  editingId.value = row.id
+  editingTime.value = row.triggerTime
+}
+
+const saveReminderTime = debounce(async (row: ReminderVO) => {
+  if (!editingTime.value) {
+    ElMessage.warning('请选择触发时间')
+    return
+  }
+  savingReminder.value = true
+  try {
+    await updateReminder(row.id, { triggerTime: editingTime.value })
+    ElMessage.success('提醒时间已更新')
+    editingId.value = ''
+    await loadReminders()
+  } finally {
+    savingReminder.value = false
+  }
+}, 500)
+
+const onCancelReminder = debounce(async (row: ReminderVO) => {
+  try {
+    await ElMessageBox.confirm(`确认取消提醒「${row.title}」？`, '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+  await cancelReminder(row.id)
+  ElMessage.success('已取消提醒')
+  await loadReminders()
+}, 500)
+
+/* ===================== 新增定时提醒（创建者自定义提醒对象与时间） ===================== */
+const reminderDialogVisible = ref(false)
+const reminderSaving = ref(false)
+const reminderForm = ref<{ title: string; content: string; targetUserId: string; triggerTime: string }>({
+  title: '',
+  content: '',
+  targetUserId: '',
+  triggerTime: ''
+})
+
+/** 打开新增提醒弹窗：默认提醒创建者，时间默认沿用活动开始时间 */
+function openReminderDialog() {
+  const creatorId = String(detail.value?.creatorId ?? userStore.userInfo?.id ?? '')
+  reminderForm.value = {
+    title: detail.value ? `活动提醒：${detail.value.title}` : '',
+    content: '',
+    targetUserId: creatorId,
+    triggerTime: detail.value?.startTime ?? ''
+  }
+  reminderDialogVisible.value = true
+}
+
+const saveReminder = debounce(async () => {
+  if (!reminderForm.value.title.trim()) {
+    ElMessage.warning('请填写提醒标题')
+    return
+  }
+  if (!reminderForm.value.triggerTime) {
+    ElMessage.warning('请选择提醒触发时间')
+    return
+  }
+  reminderSaving.value = true
+  try {
+    const target = userOptions.value.find((u) => String(u.id) === reminderForm.value.targetUserId)
+    await createReminder({
+      activityId: id,
+      title: reminderForm.value.title.trim(),
+      content: reminderForm.value.content,
+      targetUserId: reminderForm.value.targetUserId || undefined,
+      targetUserName: target ? target.nickname || target.username : undefined,
+      triggerTime: reminderForm.value.triggerTime
+    })
+    ElMessage.success('提醒已创建')
+    reminderDialogVisible.value = false
+    await loadReminders()
+  } finally {
+    reminderSaving.value = false
+  }
+}, 500)
+
 /* ===================== 复盘结构化解析 ===================== */
 interface ReviewStruct {
   summary: string
@@ -568,6 +737,9 @@ async function loadAll() {
   if (showOpsPanel.value) {
     loadEventLogs()
   }
+  if (showReminderPanel.value) {
+    loadReminders()
+  }
 }
 
 </script>
@@ -594,9 +766,10 @@ async function loadAll() {
                 v-if="detail.tasks?.length"
                 type="success"
                 :loading="confirming"
+                :disabled="!!detail.tasksNotified"
                 @click="onConfirmTasks"
               >
-                确认分工并通知成员
+                {{ detail.tasksNotified ? '已通知成员' : '确认分工并通知成员' }}
               </el-button>
               <el-button @click="goRegistration">报名人员看板</el-button>
               <el-button type="primary" :loading="reviewing" @click="onReview">生成复盘总结</el-button>
@@ -666,6 +839,16 @@ async function loadAll() {
         <el-input v-model="draft.planContent" type="textarea" :rows="6" placeholder="活动流程与任务完成计划" />
       </el-card>
 
+      <el-card v-if="options.introduction" style="margin-top: 16px">
+        <template #header>活动介绍（可编辑，发布后展示在报名页吸引参与者）</template>
+        <el-input
+          v-model="draft.introduction"
+          type="textarea"
+          :rows="5"
+          placeholder="向参与者介绍活动是做什么的、有什么亮点和收获，200-400字为宜"
+        />
+      </el-card>
+
       <el-card v-if="options.tasks" style="margin-top: 16px">
         <template #header>
           <div class="detail__header">
@@ -676,12 +859,17 @@ async function loadAll() {
         <el-table :data="draft.tasks ?? []" border>
           <el-table-column label="任务内容" min-width="180">
             <template #default="{ row }">
-              <el-input v-model="row.title" placeholder="任务标题" />
+              <el-input v-model="row.title" type="textarea" :autosize="{ minRows: 1, maxRows: 3 }" placeholder="任务标题" />
             </template>
           </el-table-column>
           <el-table-column label="交付要求" min-width="180">
             <template #default="{ row }">
-              <el-input v-model="row.description" placeholder="交付要求" />
+              <el-input
+                v-model="row.description"
+                type="textarea"
+                :autosize="{ minRows: 1, maxRows: 4 }"
+                placeholder="交付要求"
+              />
             </template>
           </el-table-column>
           <el-table-column label="负责人员" width="170">
@@ -701,7 +889,7 @@ async function loadAll() {
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="截止时间" width="190">
+          <el-table-column label="截止时间（必填）" width="190">
             <template #default="{ row }">
               <el-date-picker
                 v-model="row.deadline"
@@ -750,7 +938,7 @@ async function loadAll() {
           </el-table-column>
           <el-table-column label="备注" min-width="150">
             <template #default="{ row }">
-              <el-input v-model="row.remark" placeholder="备注" />
+              <el-input v-model="row.remark" type="textarea" :autosize="{ minRows: 1, maxRows: 3 }" placeholder="备注" />
             </template>
           </el-table-column>
           <el-table-column label="操作" width="70" align="center">
@@ -765,13 +953,31 @@ async function loadAll() {
         <template #header>
           <div class="detail__header">
             <span>报名问卷配置（可编辑）</span>
-            <el-button link type="primary" @click="addQuestion">添加题目</el-button>
+            <div>
+              <el-upload
+                :auto-upload="false"
+                :show-file-list="false"
+                accept=".jpg,.jpeg,.png,.webp"
+                :on-change="onDraftCoverChange"
+              >
+                <el-button link type="primary" :loading="coverUploading">
+                  {{ draft.coverImage ? '更换封面' : '设置问卷封面' }}
+                </el-button>
+              </el-upload>
+              <el-button v-if="draft.coverImage" link type="danger" @click="removeDraftCover">删除封面</el-button>
+              <el-button link type="primary" @click="addQuestion">添加题目</el-button>
+            </div>
           </div>
         </template>
+        <!-- 问卷封面预览：这里设置后，发布时会自动带到报名问卷 -->
+        <div v-if="draft.coverImage" class="qcover">
+          <el-image :src="draft.coverImage" fit="cover" class="qcover__img" />
+          <span class="qcover__tip">问卷封面预览（参与者填写报名问卷时展示）</span>
+        </div>
         <el-table :data="draft.questions ?? []" border>
           <el-table-column label="题目" min-width="180">
             <template #default="{ row }">
-              <el-input v-model="row.title" placeholder="题目" />
+              <el-input v-model="row.title" type="textarea" :autosize="{ minRows: 1, maxRows: 4 }" placeholder="题目" />
             </template>
           </el-table-column>
           <el-table-column label="类型" width="130">
@@ -792,6 +998,8 @@ async function loadAll() {
             <template #default="{ row }">
               <el-input
                 :model-value="optionsText(row as QuestionDraft)"
+                type="textarea"
+                :autosize="{ minRows: 1, maxRows: 4 }"
                 placeholder="选项一、选项二"
                 :disabled="row.type === 'text'"
                 @update:model-value="(v: string) => onOptionsTextChange(row as QuestionDraft, v)"
@@ -821,7 +1029,7 @@ async function loadAll() {
           </el-table-column>
           <el-table-column label="提醒内容" min-width="200">
             <template #default="{ row }">
-              <el-input v-model="row.content" placeholder="提醒内容" />
+              <el-input v-model="row.content" type="textarea" :autosize="{ minRows: 1, maxRows: 4 }" placeholder="提醒内容" />
             </template>
           </el-table-column>
           <el-table-column label="触发时间" width="190">
@@ -845,6 +1053,11 @@ async function loadAll() {
     </template>
 
     <!-- 已发布：只读展示 -->
+    <el-card v-if="detail?.introduction && detail?.status !== 5" style="margin-top: 16px">
+      <template #header>活动介绍（展示给报名参与者）</template>
+      <div style="white-space: pre-wrap; line-height: 1.8">{{ detail.introduction }}</div>
+    </el-card>
+
     <el-card v-if="detail?.planContent && detail?.status !== 5" style="margin-top: 16px">
       <template #header>AI 策划方案</template>
       <div style="white-space: pre-wrap">{{ detail.planContent }}</div>
@@ -877,6 +1090,94 @@ async function loadAll() {
         </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 定时提醒：已发布后展示，创建者可自定义待触发提醒的时间或取消 -->
+    <el-card v-if="showReminderPanel" style="margin-top: 16px" v-loading="reminderLoading">
+      <template #header>
+        <div class="detail__header">
+          <span>定时提醒（{{ reminders.length }}）</span>
+          <div>
+            <el-button v-if="isCreator" link type="primary" @click="openReminderDialog">添加提醒</el-button>
+            <el-button link type="primary" @click="loadReminders">刷新</el-button>
+          </div>
+        </div>
+      </template>
+      <el-table :data="reminders" border>
+        <el-table-column prop="title" label="提醒标题" min-width="150" />
+        <el-table-column prop="content" label="提醒内容" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="targetUserName" label="提醒对象" width="110" />
+        <el-table-column label="触发时间" width="200">
+          <template #default="{ row }">
+            <el-date-picker
+              v-if="isCreator && row.status === 0 && editingId === row.id"
+              v-model="editingTime"
+              type="datetime"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              style="width: 100%"
+            />
+            <span v-else>{{ formatDate(row.triggerTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="reminderStatusType[row.status]" size="small">{{ reminderStatusMap[row.status] }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="isCreator" label="操作" width="160" align="center">
+          <template #default="{ row }">
+            <template v-if="row.status === 0">
+              <el-button v-if="editingId !== row.id" link type="primary" @click="startEditReminder(row as ReminderVO)">修改时间</el-button>
+              <el-button v-else link type="success" :loading="savingReminder" @click="saveReminderTime(row as ReminderVO)">保存</el-button>
+              <el-button link type="danger" @click="onCancelReminder(row as ReminderVO)">取消</el-button>
+            </template>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!reminderLoading && !reminders.length" description="暂无定时提醒" :image-size="80" />
+    </el-card>
+
+    <!-- 新增定时提醒弹窗：创建者自定义提醒对象、时间与内容 -->
+    <el-dialog v-model="reminderDialogVisible" title="添加定时提醒" width="520px">
+      <el-form label-width="90px">
+        <el-form-item label="提醒标题" required>
+          <el-input v-model="reminderForm.title" maxlength="64" show-word-limit placeholder="例如：活动开始前提醒" />
+        </el-form-item>
+        <el-form-item label="提醒对象">
+          <el-select v-model="reminderForm.targetUserId" placeholder="默认提醒自己" clearable style="width: 100%">
+            <el-option
+              v-for="u in userOptions"
+              :key="u.id"
+              :label="u.nickname || u.username"
+              :value="String(u.id)"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="提醒时间" required>
+          <el-date-picker
+            v-model="reminderForm.triggerTime"
+            type="datetime"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            placeholder="选择提醒触发时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="提醒内容">
+          <el-input
+            v-model="reminderForm.content"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+            placeholder="提醒内容（可选）"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="reminderDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="reminderSaving" @click="saveReminder">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 活动文件：参与成员可查看/下载全部文件，并可上传自己的文件 -->
     <el-card style="margin-top: 16px">
@@ -1078,6 +1379,7 @@ async function loadAll() {
       <el-checkbox label="materials">物料采购清单</el-checkbox>
       <el-checkbox label="questionnaire">报名问卷配置</el-checkbox>
       <el-checkbox label="reminders">定时提醒规则</el-checkbox>
+      <el-checkbox label="introduction">活动介绍（展示给报名参与者）</el-checkbox>
     </el-checkbox-group>
     <template #footer>
       <el-button @click="optionVisible = false">取消</el-button>
@@ -1091,6 +1393,34 @@ async function loadAll() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* 问卷封面预览：固定尺寸，超出裁剪，避免撑开卡片 */
+.qcover {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  &__img {
+    width: 180px;
+    height: 100px;
+    border-radius: 4px;
+    display: block;
+    flex: none;
+  }
+
+  &__tip {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+}
+
+/* 草稿表格中的长文本：换行展示 + 纵向滚动，避免内容被裁切成一截 */
+:deep(.el-table .el-textarea__inner) {
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .option-tip {

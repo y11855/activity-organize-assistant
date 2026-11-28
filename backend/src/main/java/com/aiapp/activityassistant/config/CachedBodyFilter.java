@@ -29,6 +29,12 @@ public class CachedBodyFilter extends OncePerRequestFilter {
     /** 请求属性：JSON 请求体的 SHA-256 摘要，供 {@link IdempotentInterceptor} 使用 */
     public static final String BODY_DIGEST_ATTRIBUTE = "IDEMPOTENT_BODY_DIGEST";
 
+    /** 请求属性：JSON 请求体原文（截断 8KB），供日志拦截器采集参数 */
+    public static final String BODY_CONTENT_ATTRIBUTE = "REQUEST_BODY_CONTENT";
+
+    /** 日志采集只保留前 8KB 请求体，避免大报文长期占用内存 */
+    private static final int MAX_CACHED_BODY_LENGTH = 8192;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -39,6 +45,10 @@ public class CachedBodyFilter extends OncePerRequestFilter {
         }
         byte[] body = request.getInputStream().readAllBytes();
         request.setAttribute(BODY_DIGEST_ATTRIBUTE, DigestUtil.sha256Hex(body));
+        // 供日志采集：保留请求体原文（截断），拦截器再做敏感字段脱敏
+        String bodyText = new String(body, StandardCharsets.UTF_8);
+        request.setAttribute(BODY_CONTENT_ATTRIBUTE,
+                bodyText.length() > MAX_CACHED_BODY_LENGTH ? bodyText.substring(0, MAX_CACHED_BODY_LENGTH) : bodyText);
         chain.doFilter(new CachedBodyRequestWrapper(request, body), response);
     }
 

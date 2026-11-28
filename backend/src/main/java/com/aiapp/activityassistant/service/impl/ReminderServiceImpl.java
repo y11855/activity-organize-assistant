@@ -7,6 +7,7 @@ import com.aiapp.activityassistant.common.mq.ActivityEventType;
 import com.aiapp.activityassistant.common.result.ResultCode;
 import com.aiapp.activityassistant.common.utils.IdempotentKeyGenerator;
 import com.aiapp.activityassistant.dto.ReminderCreateDTO;
+import com.aiapp.activityassistant.dto.ReminderUpdateDTO;
 import com.aiapp.activityassistant.entity.Activity;
 import com.aiapp.activityassistant.entity.Reminder;
 import com.aiapp.activityassistant.mapper.ReminderMapper;
@@ -88,6 +89,49 @@ public class ReminderServiceImpl extends ServiceImpl<ReminderMapper, Reminder>
         reminder.setStatus(2);
         updateById(reminder);
         log.info("[提醒] 已取消提醒, id={}", id);
+    }
+
+    @Override
+    public void update(Long id, ReminderUpdateDTO dto) {
+        Reminder reminder = getById(id);
+        if (reminder == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        // 权限：活动负责人可修改，或提醒的目标用户可修改发给自己的提醒
+        boolean isTarget = reminder.getTargetUserId() != null
+                && reminder.getTargetUserId().equals(UserContext.getCurrentUserId());
+        if (!isTarget) {
+            activityService.checkManage(reminder.getActivityId(), "reminder:manage");
+        }
+        // 状态：只有「待触发」才允许修改（已发送/已取消/失败的不可改）
+        Integer status = reminder.getStatus();
+        if (status == null || status != 0) {
+            throw new BusinessException(ResultCode.REMINDER_NOT_CANCELLABLE, "仅待触发的提醒可以修改");
+        }
+        boolean changed = false;
+        if (dto.getTitle() != null) {
+            reminder.setTitle(dto.getTitle());
+            changed = true;
+        }
+        if (dto.getContent() != null) {
+            reminder.setContent(dto.getContent());
+            changed = true;
+        }
+        if (dto.getTriggerTime() != null) {
+            reminder.setTriggerTime(dto.getTriggerTime());
+            changed = true;
+        }
+        if (!changed) {
+            return;
+        }
+        // 触发时间或标题变更后重新生成幂等键，避免与其他提醒冲突
+        reminder.setIdempotentKey(idempotentKeyGenerator.generate(
+                "reminder", String.valueOf(reminder.getActivityId()),
+                String.valueOf(reminder.getTargetUserId()),
+                String.valueOf(reminder.getTriggerTime()),
+                reminder.getTitle()));
+        updateById(reminder);
+        log.info("[提醒] 已更新提醒, id={}", id);
     }
 
     @Override

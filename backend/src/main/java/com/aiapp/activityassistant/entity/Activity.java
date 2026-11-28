@@ -22,6 +22,9 @@ public class Activity extends BaseEntity {
 
     private String description;
 
+    /** 面向参与者的活动介绍（创建者手写或 AI 生成，报名页展示以吸引参与者） */
+    private String introduction;
+
     /** 活动开始时间 */
     private LocalDateTime startTime;
 
@@ -30,6 +33,9 @@ public class Activity extends BaseEntity {
 
     /** 活动地点 */
     private String location;
+
+    /** 活动属性标签: sports运动 art艺术 academic学术 public_welfare公益 social社交 entertainment娱乐 other其他 */
+    private String tag;
 
     /** 预计参与人数 */
     private Integer expectedCount;
@@ -51,6 +57,9 @@ public class Activity extends BaseEntity {
 
     /** 草稿状态: 0无 1待确认 2已确认发布 */
     private Integer draftStatus;
+
+    /** 任务分工是否已通知成员: 0否 1是（全局标志，通知一次后所有管理者都不能再通知） */
+    private Integer tasksNotified;
 
     /** 复盘总结内容（AI 生成） */
     private String reviewContent;

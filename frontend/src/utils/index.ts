@@ -1,6 +1,22 @@
 // 工具函数：日期格式化、防抖、Blob 下载等通用方法
 import dayjs from 'dayjs'
 
+/** 活动属性标签（与后端 ActivityTag 枚举保持一致） */
+export const ACTIVITY_TAGS = [
+  { value: 'sports', label: '运动' },
+  { value: 'art', label: '艺术' },
+  { value: 'academic', label: '学术' },
+  { value: 'public_welfare', label: '公益' },
+  { value: 'social', label: '社交' },
+  { value: 'entertainment', label: '娱乐' },
+  { value: 'other', label: '其他' }
+]
+
+/** 活动标签编码转中文名，未匹配返回空串 */
+export function activityTagLabel(tag?: string) {
+  return ACTIVITY_TAGS.find((item) => item.value === tag)?.label ?? ''
+}
+
 /** 时间格式化 */
 export function formatDate(date: string | Date, format = 'YYYY-MM-DD HH:mm:ss') {
   return dayjs(date).format(format)

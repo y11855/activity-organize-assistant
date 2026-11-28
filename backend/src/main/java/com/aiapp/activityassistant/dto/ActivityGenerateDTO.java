@@ -22,6 +22,9 @@ public class ActivityGenerateDTO {
     @Schema(description = "是否生成定时提醒规则")
     private Boolean reminders;
 
+    @Schema(description = "是否生成面向参与者的活动介绍")
+    private Boolean introduction;
+
     public boolean wantTasks() {
         return Boolean.TRUE.equals(tasks);
     }
@@ -38,8 +41,12 @@ public class ActivityGenerateDTO {
         return Boolean.TRUE.equals(reminders);
     }
 
+    public boolean wantIntroduction() {
+        return Boolean.TRUE.equals(introduction);
+    }
+
     /** 是否勾选了任意一项 */
     public boolean anySelected() {
-        return wantTasks() || wantMaterials() || wantQuestionnaire() || wantReminders();
+        return wantTasks() || wantMaterials() || wantQuestionnaire() || wantReminders() || wantIntroduction();
     }
 }
